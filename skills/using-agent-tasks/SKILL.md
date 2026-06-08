@@ -75,6 +75,27 @@ tasks show task-1a2b3c4d                        # full detail + history exchange
 You can also QA by delegating: spawn a subagent whose job is to verify a task in `review` and
 either move it to `done` or send it back with findings.
 
+## Escalating to a human
+
+When something genuinely needs a person — a credential, an approval, a judgement call — flag it,
+in whatever state the task is in:
+
+```bash
+tasks escalate task-1a2b3c4d --note "Need staging DB creds to reproduce the flake"
+```
+
+This sets a `needsHuman` flag (separate from state — a task can be `doing` and still need a human).
+The human inbox is then one query:
+
+```bash
+tasks list --needs-human          # everything waiting on a person, across states
+tasks list --mine                 # tasks assigned to you ($AGENT_TASKS_ACTOR)
+```
+
+Once the human has handled it, clear the flag: `tasks resolve task-1a2b3c4d --note "creds granted"`.
+Prefer `escalate` over parking a task in `blocked` when the blocker is specifically a human — it
+stays findable regardless of state and doesn't conflate "blocked on another task" with "needs me".
+
 ## Notes are required on send-backs
 
 Moving a task **backward** (e.g. `review → todo`, `review → doing`, reopening `done`) or to
@@ -111,6 +132,8 @@ moved since I last looked". Use `--json` for machine-readable output you can par
 | `tasks show <id> [--json]` | one task + full history |
 | `tasks update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note |
 | `tasks claim <id> [--assignee]` | assign to self, move to `doing`, stamp branch/worktree |
+| `tasks escalate <id> --note "<what you need>"` | flag as needing a human |
+| `tasks resolve <id> [--note]` | clear the needs-human flag |
 
 Pass an empty string (`--assignee ""`) to clear a field. Identity comes from `--actor` or
 `$AGENT_TASKS_ACTOR`.

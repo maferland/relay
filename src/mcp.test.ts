@@ -79,6 +79,20 @@ describe("MCP tools", () => {
     expect(got.description).toBe("now described");
   });
 
+  it("escalates and resolves the needs-human flag", async () => {
+    const added = await call("add_task", { title: "x", project: "demo" });
+    const id = added.text.match(/task-[a-f0-9]+/)![0];
+
+    const esc = await call("escalate_task", { id, note: "need a human to approve" });
+    expect(esc.isError).toBe(false);
+    const inbox = await call("list_tasks", { needsHuman: true, project: "demo" });
+    expect(inbox.text).toContain(id);
+
+    await call("resolve_task", { id, note: "approved" });
+    const after = await call("list_tasks", { needsHuman: true, project: "demo" });
+    expect(after.text).toMatch(/No tasks match/);
+  });
+
   it("returns a clean error (not a throw) for an invalid id", async () => {
     const res = await call("get_task", { id: "../escape" });
     expect(res.isError).toBe(true);

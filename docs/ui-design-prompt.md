@@ -15,10 +15,14 @@ the work happens agent-to-agent without me. The UI exists so I can see, in one g
 that are waiting on me — and act on them.
 
 ## What "needs a human" means (design the inbox around this)
-- **Blocked** tasks: an agent is stuck and needs my decision/unblock. Every blocked task carries a
-  required note explaining *why* it's blocked — show that reason prominently.
-- **Review awaiting me**: tasks in `review` (QA handoff) that are assigned to me rather than a QA agent.
+- **Escalated** (`needsHuman: true`): an agent explicitly flagged that it needs a person — a
+  credential, an approval, a judgement call. Each escalation carries a required note saying what's
+  needed. This flag is orthogonal to state (a task can be `doing` and still need a human). This is
+  the primary, structured "needs me" signal — make it the loudest.
 - **Assigned to me**: any task whose assignee is me, in any state.
+- **Review awaiting me**: tasks in `review` (QA handoff) assigned to me rather than a QA agent.
+- (`blocked` is a workflow state — blocked on another task — distinct from `needsHuman`. A task can
+  be both; show both.)
 
 This "Needs you" inbox is the hero of the UI. Everything else (the full board) is secondary.
 
@@ -34,6 +38,7 @@ or rejects it back with a note. The back-and-forth between worker and QA is the 
 ## Data model (one task)
 - `id`, `title`, `description` (what's being done), `plan` (the approach/steps)
 - `state`: todo | doing | review | done | blocked
+- `needsHuman` (boolean): escalated, waiting on a person — orthogonal to state
 - `project` (the git repo), `branch`, `worktree` (where the work happens — stamped on claim)
 - `assignee` (free-text actor: an agent name, or me), `createdBy`
 - `createdAt`, `updatedAt`

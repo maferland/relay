@@ -65,6 +65,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
         assignee: z.string().optional(),
         project: z.string().optional().describe("Omit to list across all projects"),
         since: z.string().optional().describe("ISO timestamp; only tasks updated at/after it"),
+        needsHuman: z.boolean().optional().describe("Only tasks escalated to a human"),
       }),
       annotations: { readOnlyHint: true },
     },
@@ -118,6 +119,49 @@ export function registerTools(server: McpServer, store: TaskStore): void {
       try {
         const task = await store.update(id, changes, { actor, note });
         return ok(`Updated ${summarize(task)}`);
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  server.registerTool(
+    "escalate_task",
+    {
+      title: "Escalate to a human",
+      description:
+        "Flag a task as needing a human (orthogonal to its state). The note must say what you need. Find these with list_tasks({ needsHuman: true }).",
+      inputSchema: z.object({
+        id: z.string(),
+        note: z.string().describe("What you need from a human"),
+        actor: z.string().optional(),
+      }),
+    },
+    async ({ id, note, actor }): Promise<CallToolResult> => {
+      try {
+        const task = await store.escalate(id, { actor, note });
+        return ok(`Escalated ${summarize(task)}`);
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  server.registerTool(
+    "resolve_task",
+    {
+      title: "Clear needs-human",
+      description: "Clear the needs-human flag once a human has handled it.",
+      inputSchema: z.object({
+        id: z.string(),
+        note: z.string().optional(),
+        actor: z.string().optional(),
+      }),
+    },
+    async ({ id, note, actor }): Promise<CallToolResult> => {
+      try {
+        const task = await store.resolve(id, { actor, note });
+        return ok(`Resolved ${summarize(task)}`);
       } catch (e) {
         return err(e);
       }

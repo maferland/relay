@@ -99,6 +99,7 @@ export interface TaskFilter {
   assignee?: string;
   project?: string;
   since?: string; // ISO; keeps tasks with updatedAt >= since
+  needsHuman?: boolean; // only tasks escalated to a human
 }
 
 export interface ClaimInput {
@@ -115,6 +116,8 @@ export interface TaskStore {
   list(filter?: TaskFilter): Promise<Task[]>;
   update(id: string, changes: TaskChanges, meta: { actor?: string; note?: string }): Promise<Task>;
   claim(id: string, input: ClaimInput): Promise<Task>;
+  escalate(id: string, meta: { actor?: string; note?: string }): Promise<Task>;
+  resolve(id: string, meta: { actor?: string; note?: string }): Promise<Task>;
 }
 
 interface Row {
@@ -171,6 +174,7 @@ export class SqliteTaskStore implements TaskStore {
     if (filter.state) (where.push("state = ?"), params.push(filter.state));
     if (filter.assignee) (where.push("assignee = ?"), params.push(filter.assignee));
     if (filter.project) (where.push("project = ?"), params.push(filter.project));
+    if (filter.needsHuman) where.push("json_extract(data, '$.needsHuman') = 1");
     if (filter.since !== undefined) {
       const since = new Date(filter.since);
       if (isNaN(since.getTime())) throw new Error(`Invalid since timestamp: ${filter.since}`);
@@ -221,6 +225,45 @@ export class SqliteTaskStore implements TaskStore {
             { assignee: input.assignee, state: "doing", branch: input.branch, worktree: input.worktree },
             { actor: input.actor, note: input.note ?? "claimed" }
           );
+          this.writeRow(task);
+          return task;
+        })
+        .immediate()
+    );
+  }
+
+  // Flag a task as waiting on a human (orthogonal to state). The note says what's needed.
+  async escalate(id: string, meta: { actor?: string; note?: string }): Promise<Task> {
+    validateId(id);
+    const note = meta.note?.trim();
+    if (!note) throw new Error("A note is required to escalate (say what you need from a human).");
+    return withBusyRetry(() =>
+      this.db
+        .transaction(() => {
+          const task = this.readRow(id);
+          if (!task) throw new Error(`Task "${id}" not found`);
+          task.needsHuman = true;
+          const at = new Date().toISOString();
+          task.updatedAt = at;
+          task.history.push({ at, actor: meta.actor, note });
+          this.writeRow(task);
+          return task;
+        })
+        .immediate()
+    );
+  }
+
+  async resolve(id: string, meta: { actor?: string; note?: string }): Promise<Task> {
+    validateId(id);
+    return withBusyRetry(() =>
+      this.db
+        .transaction(() => {
+          const task = this.readRow(id);
+          if (!task) throw new Error(`Task "${id}" not found`);
+          delete task.needsHuman;
+          const at = new Date().toISOString();
+          task.updatedAt = at;
+          task.history.push({ at, actor: meta.actor, note: meta.note?.trim() || "resolved (no longer needs a human)" });
           this.writeRow(task);
           return task;
         })

@@ -116,6 +116,30 @@ describe("SqliteTaskStore", () => {
     });
   });
 
+  describe("escalate / resolve (needs-human)", () => {
+    it("flags a task for a human and surfaces it via the needsHuman filter", async () => {
+      await store.add(makeTask("task-1", { state: "doing" }));
+      const escalated = await store.escalate("task-1", { actor: "worker", note: "need staging creds" });
+      expect(escalated.needsHuman).toBe(true);
+      expect(escalated.state).toBe("doing"); // orthogonal to state
+      expect(escalated.history.at(-1)).toMatchObject({ actor: "worker", note: "need staging creds" });
+      expect((await store.list({ needsHuman: true })).map((t) => t.id)).toEqual(["task-1"]);
+    });
+
+    it("requires a note to escalate", async () => {
+      await store.add(makeTask("task-1"));
+      await expect(store.escalate("task-1", { actor: "w" })).rejects.toThrow(/note is required/);
+    });
+
+    it("resolve clears the flag and drops it from the human inbox", async () => {
+      await store.add(makeTask("task-1"));
+      await store.escalate("task-1", { actor: "w", note: "help" });
+      const resolved = await store.resolve("task-1", { actor: "lead", note: "creds granted" });
+      expect(resolved.needsHuman).toBeUndefined();
+      expect(await store.list({ needsHuman: true })).toEqual([]);
+    });
+  });
+
   describe("buildTask", () => {
     it("requires a note to create a task already blocked", () => {
       expect(() => buildTask({ title: "x", project: "p", state: "blocked" })).toThrow(/note is required/);
