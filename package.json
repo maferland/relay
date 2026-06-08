@@ -1,0 +1,27 @@
+{
+  "name": "agent-tasks",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local-first task tracker for coordinating multi-agent work — log tasks, hand off for QA, poll for state changes",
+  "license": "MIT",
+  "bin": {
+    "tasks": "dist/tasks"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun scripts/build.mjs",
+    "dev": "bun --watch src/cli.ts",
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.25.2",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}
