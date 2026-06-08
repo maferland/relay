@@ -22,6 +22,9 @@ tasks list [--state S] [--assignee X] [--project P|--all] [--since ISO] [--json]
 tasks show <id> [--json]
 tasks update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..]
 tasks claim <id> [--assignee X]
+tasks escalate <id> --note "<what you need>"   # flag: needs a human
+tasks resolve <id> [--note ..]                 # clear needs-human
+tasks list --needs-human   # the human inbox (also --mine)
 tasks mcp          # stdio MCP server over the same store
 ```
 

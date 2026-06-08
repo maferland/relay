@@ -120,6 +120,42 @@ describe("tasks CLI", () => {
     expect(stderr).toMatch(/Invalid --state/);
   });
 
+  it("escalates a task and surfaces it in the human inbox (--needs-human)", async () => {
+    const { id } = await addTask("flaky test", ["--assignee", "worker-1"]);
+    await run(["claim", id], "worker-1");
+    const escalated = JSON.parse(
+      (await run(["escalate", id, "--note", "need staging creds", "--json"], "worker-1")).stdout
+    ) as Task;
+    expect(escalated.needsHuman).toBe(true);
+
+    const inbox = JSON.parse(
+      (await run(["list", "--needs-human", "--project", "demo", "--json"])).stdout
+    ) as Task[];
+    expect(inbox.map((t) => t.id)).toContain(id);
+
+    const resolved = JSON.parse((await run(["resolve", id, "--note", "done", "--json"])).stdout) as Task;
+    expect(resolved.needsHuman).toBeUndefined();
+  });
+
+  it("--mine lists tasks assigned to the current actor", async () => {
+    const mine = await addTask("for me", ["--assignee", "me"]);
+    await addTask("for someone else", ["--assignee", "other"]);
+    const list = JSON.parse((await run(["list", "--mine", "--project", "demo", "--json"], "me")).stdout) as Task[];
+    expect(list.map((t) => t.id)).toEqual([mine.id]);
+  });
+
+  it("--json on an empty list still signals the scope on stderr", async () => {
+    const { stdout, stderr } = await run(["list", "--needs-human", "--project", "demo", "--json"]);
+    expect(stdout.trim()).toBe("[]");
+    expect(stderr).toMatch(/No tasks match/);
+  });
+
+  it("--help prints usage and exits 0", async () => {
+    const { exitCode, stdout } = await run(["list", "--help"]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toMatch(/escalate/);
+  });
+
   describe("arg parsing", () => {
     it("errors on an unknown flag instead of silently dropping content", async () => {
       const { exitCode, stderr } = await run(["add", "fix", "the", "--bug", "now", "--project", "demo"]);

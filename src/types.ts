@@ -33,6 +33,7 @@ export interface Task {
   project: string; // main repo name, stable across worktrees
   branch?: string; // git branch the work happens on
   worktree?: string; // worktree dir the work happens in
+  needsHuman?: boolean; // escalated: waiting on a human, orthogonal to state
   assignee?: string;
   createdBy?: string;
   createdAt: string;

@@ -2,7 +2,7 @@ import { buildTask, SqliteTaskStore } from "./store.js";
 import { isState, STATES, type State, type Task, type TaskChanges } from "./types.js";
 import { detectProject, gitContext, resolveActor } from "./util.js";
 
-const BOOL_FLAGS = new Set(["all", "json"]);
+const BOOL_FLAGS = new Set(["all", "json", "needs-human", "mine", "help"]);
 const VALUE_FLAGS = new Set([
   "desc", "plan", "assignee", "project", "state", "note", "title", "branch", "worktree", "actor", "since",
 ]);
@@ -30,6 +30,10 @@ function parseArgs(argv: string[]): ParsedArgs {
     if (arg === "--") {
       positional.push(...rest.slice(i + 1));
       break;
+    }
+    if (arg === "-h") {
+      flags.help = true;
+      continue;
     }
     if (arg.startsWith("--")) {
       const name = arg.slice(2);
@@ -78,24 +82,32 @@ function printTask(task: Task, json: boolean): void {
   const where = task.branch || task.worktree
     ? `\n  branch: ${task.branch ?? "—"}   worktree: ${task.worktree ?? "—"}`
     : "";
+  const flag = task.needsHuman ? "  ** NEEDS HUMAN **" : "";
   process.stdout.write(
-    `${task.id}  [${task.state}]  ${task.title}\n` +
+    `${task.id}  [${task.state}]${flag}  ${task.title}\n` +
       `  project: ${task.project}   assignee: ${task.assignee ?? "—"}   updated: ${short(task.updatedAt)}${where}\n`
   );
 }
 
 function printList(tasks: Task[], json: boolean, scope?: string): void {
+  // Signal the active scope on an empty result (even in JSON) so a bare [] isn't misread.
+  if (tasks.length === 0) {
+    const hint = scope ? ` in project "${scope}" (use --all to see every project)` : "";
+    process.stderr.write(`No tasks match${hint}.\n`);
+    if (json) process.stdout.write("[]\n");
+    return;
+  }
   if (json) {
     process.stdout.write(JSON.stringify(tasks, null, 2) + "\n");
     return;
   }
-  if (tasks.length === 0) {
-    const hint = scope ? ` in project "${scope}" (use --all to see every project)` : "";
-    process.stderr.write(`No tasks match${hint}.\n`);
-    return;
-  }
   const rows = tasks.map((t) => [
-    t.id, t.state, t.assignee ?? "—", t.project, short(t.updatedAt), t.title,
+    t.id,
+    t.needsHuman ? `${t.state}!` : t.state,
+    t.assignee ?? "—",
+    t.project,
+    short(t.updatedAt),
+    t.title,
   ]);
   const headers = ["ID", "STATE", "ASSIGNEE", "PROJECT", "UPDATED", "TITLE"];
   const widths = headers.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)));
@@ -136,9 +148,10 @@ async function listCommand(args: ParsedArgs): Promise<void> {
   const scope = args.flags.all ? undefined : val(args.flags.project) ?? detectProject();
   const tasks = await new SqliteTaskStore().list({
     state: requireState(val(args.flags.state)),
-    assignee: val(args.flags.assignee),
+    assignee: args.flags.mine ? resolveActor(val(args.flags.actor)) : val(args.flags.assignee),
     project: scope,
     since: val(args.flags.since),
+    needsHuman: !!args.flags["needs-human"],
   });
   printList(tasks, !!args.flags.json, scope);
 }
@@ -199,6 +212,24 @@ async function claimCommand(args: ParsedArgs): Promise<void> {
   printTask(task, !!args.flags.json);
 }
 
+async function escalateCommand(args: ParsedArgs): Promise<void> {
+  const [id] = args.positional;
+  if (!id) die('usage: tasks escalate <id> --note "<what you need from a human>"', 2);
+  const task = await new SqliteTaskStore()
+    .escalate(id, { actor: resolveActor(val(args.flags.actor)), note: val(args.flags.note) })
+    .catch((e: Error) => die(e.message));
+  printTask(task, !!args.flags.json);
+}
+
+async function resolveCommand(args: ParsedArgs): Promise<void> {
+  const [id] = args.positional;
+  if (!id) die("usage: tasks resolve <id> [--note ..]", 2);
+  const task = await new SqliteTaskStore()
+    .resolve(id, { actor: resolveActor(val(args.flags.actor)), note: val(args.flags.note) })
+    .catch((e: Error) => die(e.message));
+  printTask(task, !!args.flags.json);
+}
+
 async function mcpCommand(): Promise<void> {
   const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
   const { createServer } = await import("./mcp.js");
@@ -213,16 +244,27 @@ const HELP =
   "  tasks show <id> [--json]\n" +
   "  tasks update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n" +
   "  tasks claim <id> [--assignee X]\n" +
+  '  tasks escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
+  "  tasks resolve <id> [--note ..]                 (clear the needs-human flag)\n" +
   "  tasks mcp   (stdio MCP server over the same store)\n\n" +
   `States: ${STATES.join(" → ")} (review = needs QA)\n` +
+  "Human inbox: tasks list --needs-human   (also --mine for your assigned tasks)\n" +
   "Send-backs (a backward move or blocked) require --note.\n" +
   "Actor: --actor or $AGENT_TASKS_ACTOR (default 'unknown'). Use -- to end option parsing.\n";
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  if (args.flags.help || args.command === "help") {
+    process.stdout.write(HELP);
+    process.exit(0);
+  }
   switch (args.command) {
     case "add":
       return addCommand(args);
+    case "escalate":
+      return escalateCommand(args);
+    case "resolve":
+      return resolveCommand(args);
     case "list":
     case "ls":
       return listCommand(args);
