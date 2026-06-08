@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck && bun test
+      - name: Build release binaries
+        run: AGENT_TASKS_RELEASE=1 bun scripts/build.mjs
+      - name: Checksums
+        working-directory: dist
+        run: |
+          for f in tasks-*; do shasum -a 256 "$f" > "$f.sha256"; done
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/tasks-*
+            dist/tasks-*.sha256
