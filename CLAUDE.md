@@ -12,6 +12,7 @@ bun test           # run bun:test suite
 bun run typecheck  # tsc --noEmit
 bun run build      # typecheck → compile standalone `dist/tasks` binary
 bun run dev        # watch mode (runs the CLI)
+verdict run        # LLM behavior tests for the using-agent-tasks skill (needs 1Password unlocked)
 ```
 
 ## Running

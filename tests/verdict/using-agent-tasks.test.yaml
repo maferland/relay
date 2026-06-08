@@ -1,0 +1,62 @@
+description: using-agent-tasks skill — triggers and behaviors
+
+defaultTest:
+  vars:
+    inject-skills: [using-agent-tasks]
+    env:
+      disableSkills: true
+      noMcp: true
+      tools: [AskUserQuestion]
+      pluginDir: /Users/marc-antoine.ferland/dev/agent-tasks
+
+prompts:
+  - "{{prompt}}"
+
+tests:
+  - description: "logs a task for another agent via the tasks CLI"
+    vars:
+      prompt: "Another agent should pick up fixing the login redirect loop. What's the exact command to log that task for them? Don't run anything — just show me the command."
+      retries: 1
+    assert:
+      - type: javascript
+        value: "/tasks\\s+add\\b/.test(output)"
+      - type: llm-rubric
+        value: "Response shows a `tasks add \"...\"` command to log the work (optionally with --assignee/--plan/--desc). It does NOT invent a different tool or a manual markdown to-do file."
+
+  - description: "hands off for QA via the review state and polls for it"
+    vars:
+      prompt: "An agent just finished its task and it should go to me for QA. What are the exact commands — one for the agent to hand off, and one for me to find what's waiting? Don't run anything."
+      retries: 1
+    assert:
+      - type: llm-rubric
+        value: "Response moves the task to the `review` state (e.g. `tasks update <id> --state review --note ...`) for the handoff, and finds the queue with `tasks list --state review` (a poll)."
+
+  - description: "a QA rejection (send-back) includes a required note"
+    vars:
+      prompt: "I reviewed a task and it failed QA — the logout still 500s. What's the exact command to send it back to the worker? Don't run anything."
+      retries: 1
+    assert:
+      - type: javascript
+        value: "/--note\\b/.test(output)"
+      - type: llm-rubric
+        value: "Response sends the task backward (e.g. `tasks update <id> --state doing` or `--state todo`) AND includes a `--note` explaining why it failed. It does not omit the note."
+
+  - description: "escalates a human-needed blocker instead of just blocking"
+    vars:
+      prompt: "An agent can't proceed on its task — it needs me (a human) to grant staging credentials. What's the exact command to flag that for me, and how do I list everything waiting on me? Don't run anything."
+      retries: 1
+    assert:
+      - type: javascript
+        value: "/tasks\\s+escalate\\b/.test(output) && /--needs-human\\b/.test(output)"
+      - type: llm-rubric
+        value: "Response shows `tasks escalate <id> --note \"...\"` (the needs-human flag, with a note saying what's needed) and the human inbox query `tasks list --needs-human`. Using escalate is preferred over only setting state=blocked. Any task id (real, placeholder, or <id>) is fine."
+
+  - description: "uses real commands, not invented ones"
+    vars:
+      prompt: "What are the exact commands an agent runs to pick up task-aaa111 and mark it ready for review? Don't run anything — just list the commands."
+      retries: 1
+    assert:
+      - type: javascript
+        value: "/tasks\\s+claim\\s+task-aaa111/.test(output)"
+      - type: llm-rubric
+        value: "Commands use only real subcommands (add, list, show, update, claim, escalate, resolve). It does NOT use non-existent ones like `tasks create`, `tasks get`, `tasks start`, or `tasks done`."
