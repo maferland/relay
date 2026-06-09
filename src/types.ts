@@ -28,6 +28,7 @@ export interface TaskEvent {
   from?: State
   to?: State
   note?: string
+  kind?: 'comment' | 'escalate' | 'resolve' // note-only events; absent for transitions
 }
 
 // A link to this task's counterpart on a remote system (e.g. a GitHub PR).

@@ -406,6 +406,7 @@ describe('tasks CLI', () => {
       expect(last).toMatchObject({
         actor: 'qa',
         note: 'what did you mean by X?',
+        kind: 'comment',
       })
       expect(last.from).toBeUndefined()
       expect(last.to).toBeUndefined()

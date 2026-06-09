@@ -353,4 +353,42 @@ describe('SqliteTaskStore', () => {
       expect(t.labels).toEqual(['a', 'b'])
     })
   })
+
+  describe('event kinds', () => {
+    it('tags comment, escalate, and resolve events by kind', async () => {
+      await store.add(makeTask('task-k'))
+      const commented = await store.comment('task-k', {
+        actor: 'qa',
+        note: 'a question',
+      })
+      expect(commented.history.at(-1)).toMatchObject({
+        kind: 'comment',
+        note: 'a question',
+      })
+      const escalated = await store.escalate('task-k', {
+        actor: 'qa',
+        note: 'need creds',
+      })
+      expect(escalated.history.at(-1)).toMatchObject({ kind: 'escalate' })
+      const resolved = await store.resolve('task-k', { actor: 'lead' })
+      expect(resolved.history.at(-1)).toMatchObject({ kind: 'resolve' })
+    })
+
+    it('rejects an empty comment', async () => {
+      await store.add(makeTask('task-k2'))
+      await expect(store.comment('task-k2', { note: '  ' })).rejects.toThrow(
+        /comment message is required/
+      )
+    })
+
+    it('leaves transition events without a kind', async () => {
+      await store.add(makeTask('task-k3'))
+      const moved = await store.update(
+        'task-k3',
+        { state: 'doing' },
+        { actor: 'w' }
+      )
+      expect(moved.history.at(-1)!.kind).toBeUndefined()
+    })
+  })
 })
