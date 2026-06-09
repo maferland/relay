@@ -45,8 +45,9 @@ function KanbanCard({
     >
       <div className="kcard-top">
         <span className="kcard-id mono">{task.id}</span>
-        <span className="meta mono">
-          <Icon name="folder" size={11} /> {task.project}
+        <span className="meta">
+          <Icon name="folder" size={11} />{' '}
+          <span className="mono">{task.project}</span>
         </span>
         {needsMe && <span className="kcard-att" title="needs you" />}
       </div>
@@ -54,9 +55,11 @@ function KanbanCard({
       {note && <div className="kcard-reason">{note.note}</div>}
       <div className="kcard-foot">
         {task.branch ? (
-          <span className="meta mono">
+          <span className="meta">
             <Icon name="branch" size={11} />{' '}
-            {task.branch.replace(/^(feat|fix|chore|docs|refactor)\//, '')}
+            <span className="mono">
+              {task.branch.replace(/^(feat|fix|chore|docs|refactor)\//, '')}
+            </span>
           </span>
         ) : (
           <span className="meta">unclaimed</span>
