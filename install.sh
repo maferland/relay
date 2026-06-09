@@ -40,6 +40,8 @@ bun run build >/dev/null
 mkdir -p "$BIN_DIR"
 cp dist/relay "$BIN_DIR/relay"
 chmod +x "$BIN_DIR/relay"
+# Copying a Bun-compiled binary invalidates its ad-hoc signature; macOS then SIGKILLs it.
+[ "$(uname)" = "Darwin" ] && codesign --force --sign - "$BIN_DIR/relay" >/dev/null 2>&1 || true
 echo -e "  ${GREEN}✓${RESET} Installed relay → ${BIN_DIR}/relay"
 
 mkdir -p "$SKILLS_DIR"
