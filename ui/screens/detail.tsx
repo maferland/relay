@@ -85,6 +85,11 @@ function eventKind(ev: UiEvent): string {
   if (ev.from === 'review' && ev.to === 'todo') return 'is-reject'
   return ''
 }
+function eventNoteLabel(ev: UiEvent): string | undefined {
+  if (ev.to === 'blocked') return 'Blocked'
+  if (ev.from === 'review' && ev.to === 'todo') return 'Sent back'
+  return undefined
+}
 function eventIcon(ev: UiEvent): string {
   if (ev.to === 'blocked') return 'alert'
   if (ev.to === 'done') return 'check'
@@ -99,7 +104,7 @@ function eventIcon(ev: UiEvent): string {
   return 'arrowRight'
 }
 
-function TimelineNote({ note }: { note: string }) {
+function TimelineNote({ note, label }: { note: string; label?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState(false)
   const [overflows, setOverflows] = useState(false)
@@ -110,6 +115,7 @@ function TimelineNote({ note }: { note: string }) {
   }, [note])
   return (
     <div className="tl-note">
+      {label && <span className="tl-note-tag">{label}</span>}
       <div ref={ref} className={`tl-note-body${expanded ? '' : ' is-clamped'}`}>
         {note}
       </div>
@@ -157,8 +163,9 @@ function Timeline({
               name: ev.actor,
               kind: 'agent' as const,
             }
+            const kind = eventKind(ev)
             return (
-              <div className={`tl-item ${eventKind(ev)}`} key={i}>
+              <div className={`tl-item ${kind}`} key={i}>
                 <div className="tl-spine">
                   <div className="tl-node">
                     <Icon name={eventIcon(ev)} size={14} />
@@ -167,14 +174,13 @@ function Timeline({
                 <div className="tl-body">
                   <div className="tl-line1">
                     <Avatar actorId={ev.actor} actors={actors} size={18} />
-                    <span className="tl-actor">
-                      {a.name}
-                      {a.kind === 'human' ? ' (you)' : ''}
-                    </span>
+                    <span className="tl-actor">{a.name}</span>
                     <TransitionPill from={ev.from} to={ev.to} kind={ev.kind} />
                     <span className="tl-time">{clockTime(ev.at)}</span>
                   </div>
-                  {ev.note && <TimelineNote note={ev.note} />}
+                  {ev.note && (
+                    <TimelineNote note={ev.note} label={eventNoteLabel(ev)} />
+                  )}
                 </div>
               </div>
             )
@@ -435,7 +441,6 @@ export function Detail({
                   >
                     <Avatar actorId={task.assignee} actors={actors} size={18} />{' '}
                     {actors[task.assignee]?.name || task.assignee}
-                    {task.assignee === me ? ' (you)' : ''}
                   </span>
                 ) : (
                   <span style={{ color: 'var(--text-faint)' }}>unassigned</span>
