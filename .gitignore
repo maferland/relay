@@ -4,3 +4,7 @@ dist/
 .DS_Store
 .worktrees/
 .claude/settings.local.json
+
+# verdict run artifacts (the test files in tests/verdict/ are tracked)
+.verdict-history.json
+.verdict-runs/

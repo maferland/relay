@@ -1,28 +1,44 @@
-import { Fragment } from "react";
-import { Avatar, Button, Icon, ProjectTag, StateBadge } from "../components/ui.tsx";
-import { relTime } from "../lib/time.ts";
-import { lastNote, transitionsFor } from "../lib/transitions.ts";
-import type { Actor, Transition, UiTask } from "../lib/types.ts";
+import { Fragment } from 'react'
+import {
+  Avatar,
+  Button,
+  Icon,
+  ProjectTag,
+  StateBadge,
+} from '../components/ui.tsx'
+import { relTime } from '../lib/time.ts'
+import { lastNote, transitionsFor } from '../lib/transitions.ts'
+import type { Actor, Transition, UiTask } from '../lib/types.ts'
 
-type InboxKind = "escalated" | "blocked" | "review" | "mine";
+type InboxKind = 'escalated' | 'blocked' | 'review' | 'mine'
 
 interface CardProps {
-  task: UiTask;
-  kind: InboxKind;
-  actors: Record<string, Actor>;
-  now: number;
-  onOpen: (id: string) => void;
-  onAction: (task: UiTask, t: Transition) => void;
-  onResolve: (task: UiTask) => void;
+  task: UiTask
+  kind: InboxKind
+  actors: Record<string, Actor>
+  now: number
+  onOpen: (id: string) => void
+  onAction: (task: UiTask, t: Transition) => void
+  onResolve: (task: UiTask) => void
 }
 
-function InboxCard({ task, kind, actors, now, onOpen, onAction, onResolve }: CardProps) {
-  const trans = transitionsFor(task.state);
-  const primary = trans.find((t) => t.primary) || trans[0];
-  const secondary = trans.find((t) => t !== primary && (t.danger || t.good)) || trans[1];
-  const note = lastNote(task);
-  const showReason = kind === "blocked" || kind === "review" || kind === "escalated";
-  const accentReview = kind === "review";
+function InboxCard({
+  task,
+  kind,
+  actors,
+  now,
+  onOpen,
+  onAction,
+  onResolve,
+}: CardProps) {
+  const trans = transitionsFor(task.state)
+  const primary = trans.find((t) => t.primary) || trans[0]
+  const secondary =
+    trans.find((t) => t !== primary && (t.danger || t.good)) || trans[1]
+  const note = lastNote(task)
+  const showReason =
+    kind === 'blocked' || kind === 'review' || kind === 'escalated'
+  const accentReview = kind === 'review'
 
   return (
     <div className={`icard is-${kind}`} onClick={() => onOpen(task.id)}>
@@ -34,25 +50,30 @@ function InboxCard({ task, kind, actors, now, onOpen, onAction, onResolve }: Car
           <ProjectTag
             project={task.project}
             onClick={(e) => {
-              e.stopPropagation();
-              onOpen(task.id);
+              e.stopPropagation()
+              onOpen(task.id)
             }}
           />
         </div>
         <p className="icard-title">{task.title}</p>
 
         {note && showReason && (
-          <div className={`reason ${accentReview ? "review" : ""}`}>
+          <div className={`reason ${accentReview ? 'review' : ''}`}>
             <span className="reason-ic">
-              <Icon name={accentReview ? "send" : "alert"} size={15} />
+              <Icon name={accentReview ? 'send' : 'alert'} size={15} />
             </span>
             <div style={{ minWidth: 0 }}>
               <span className="reason-label">
-                {kind === "escalated" ? "Needs you: " : kind === "blocked" ? "Blocked: " : "Handed to you: "}
+                {kind === 'escalated'
+                  ? 'Needs you: '
+                  : kind === 'blocked'
+                    ? 'Blocked: '
+                    : 'Handed to you: '}
               </span>
               <span>{note.note}</span>
               <div className="reason-author">
-                — {actors[note.actor]?.name || note.actor}, {relTime(note.at, now)}
+                — {actors[note.actor]?.name || note.actor},{' '}
+                {relTime(note.at, now)}
               </div>
             </div>
           </div>
@@ -60,32 +81,50 @@ function InboxCard({ task, kind, actors, now, onOpen, onAction, onResolve }: Car
 
         <div className="icard-foot">
           <span className="waiting">
-            <Avatar actorId={task.assignee || task.createdBy} actors={actors} size={20} />
-            {kind === "mine" ? (
+            <Avatar
+              actorId={task.assignee || task.createdBy}
+              actors={actors}
+              size={20}
+            />
+            {kind === 'mine' ? (
               <span>
                 Assigned to <strong>you</strong>
               </span>
             ) : (
               <span>
-                Waiting on <strong>you</strong> · {actors[note?.actor || task.createdBy || ""]?.name || "an agent"} handed off
+                Waiting on <strong>you</strong> ·{' '}
+                {actors[note?.actor || task.createdBy || '']?.name ||
+                  'an agent'}{' '}
+                handed off
               </span>
             )}
           </span>
           <span className="dotsep" />
           <span className="meta">
-            <Icon name="clock" size={12} /> updated {relTime(task.updatedAt, now)}
+            <Icon name="clock" size={12} /> updated{' '}
+            {relTime(task.updatedAt, now)}
           </span>
         </div>
       </div>
 
       <div className="icard-actions" onClick={(e) => e.stopPropagation()}>
-        {kind === "escalated" ? (
+        {kind === 'escalated' ? (
           <Fragment>
-            <Button variant="accent" size="md" icon="check" onClick={() => onResolve(task)}>
+            <Button
+              variant="accent"
+              size="md"
+              icon="check"
+              onClick={() => onResolve(task)}
+            >
               Resolve
             </Button>
             {primary && (
-              <Button variant="default" size="md" icon={primary.icon} onClick={() => onAction(task, primary)}>
+              <Button
+                variant="default"
+                size="md"
+                icon={primary.icon}
+                onClick={() => onAction(task, primary)}
+              >
                 {primary.label}
               </Button>
             )}
@@ -94,7 +133,13 @@ function InboxCard({ task, kind, actors, now, onOpen, onAction, onResolve }: Car
           <Fragment>
             {primary && (
               <Button
-                variant={primary.good ? "accent" : primary.danger ? "danger" : "primary"}
+                variant={
+                  primary.good
+                    ? 'accent'
+                    : primary.danger
+                      ? 'danger'
+                      : 'primary'
+                }
                 size="md"
                 icon={primary.icon}
                 onClick={() => onAction(task, primary)}
@@ -104,7 +149,7 @@ function InboxCard({ task, kind, actors, now, onOpen, onAction, onResolve }: Car
             )}
             {secondary && (
               <Button
-                variant={secondary.danger ? "dangerout" : "default"}
+                variant={secondary.danger ? 'dangerout' : 'default'}
                 size="md"
                 icon={secondary.icon}
                 onClick={() => onAction(task, secondary)}
@@ -114,23 +159,28 @@ function InboxCard({ task, kind, actors, now, onOpen, onAction, onResolve }: Car
             )}
           </Fragment>
         )}
-        <Button variant="ghost" size="sm" iconRight="chevRight" onClick={() => onOpen(task.id)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          iconRight="chevRight"
+          onClick={() => onOpen(task.id)}
+        >
           Open detail
         </Button>
       </div>
     </div>
-  );
+  )
 }
 
-interface GroupProps extends Omit<CardProps, "task"> {
-  groupIcon: string;
-  title: string;
-  desc: string;
-  tasks: UiTask[];
+interface GroupProps extends Omit<CardProps, 'task'> {
+  groupIcon: string
+  title: string
+  desc: string
+  tasks: UiTask[]
 }
 
 function Group({ groupIcon, kind, title, desc, tasks, ...rest }: GroupProps) {
-  if (!tasks.length) return null;
+  if (!tasks.length) return null
   return (
     <div className="grp">
       <div className={`grp-head ${kind}`}>
@@ -147,35 +197,49 @@ function Group({ groupIcon, kind, title, desc, tasks, ...rest }: GroupProps) {
         ))}
       </div>
     </div>
-  );
+  )
 }
 
 interface InboxProps {
-  tasks: UiTask[];
-  actors: Record<string, Actor>;
-  me: string;
-  now: number;
-  loading: boolean;
-  onOpen: (id: string) => void;
-  onAction: (task: UiTask, t: Transition) => void;
-  onResolve: (task: UiTask) => void;
+  tasks: UiTask[]
+  actors: Record<string, Actor>
+  me: string
+  now: number
+  loading: boolean
+  onOpen: (id: string) => void
+  onAction: (task: UiTask, t: Transition) => void
+  onResolve: (task: UiTask) => void
 }
 
-export function Inbox({ tasks, actors, me, now, loading, onOpen, onAction, onResolve }: InboxProps) {
-  const oldestFirst = (a: UiTask, b: UiTask) => a.updatedAt - b.updatedAt;
+export function Inbox({
+  tasks,
+  actors,
+  me,
+  now,
+  loading,
+  onOpen,
+  onAction,
+  onResolve,
+}: InboxProps) {
+  const oldestFirst = (a: UiTask, b: UiTask) => a.updatedAt - b.updatedAt
   // Escalated takes precedence so a task never appears in two groups.
-  const escalated = tasks.filter((t) => t.needsHuman).sort(oldestFirst);
-  const free = tasks.filter((t) => !t.needsHuman);
-  const blocked = free.filter((t) => t.state === "blocked").sort(oldestFirst);
-  const review = free.filter((t) => t.state === "review" && t.assignee === me).sort(oldestFirst);
+  const escalated = tasks.filter((t) => t.needsHuman).sort(oldestFirst)
+  const free = tasks.filter((t) => !t.needsHuman)
+  const blocked = free.filter((t) => t.state === 'blocked').sort(oldestFirst)
+  const review = free
+    .filter((t) => t.state === 'review' && t.assignee === me)
+    .sort(oldestFirst)
   const mine = free
-    .filter((t) => t.assignee === me && !["blocked", "review", "done"].includes(t.state))
-    .sort(oldestFirst);
-  const total = escalated.length + blocked.length + review.length + mine.length;
+    .filter(
+      (t) =>
+        t.assignee === me && !['blocked', 'review', 'done'].includes(t.state)
+    )
+    .sort(oldestFirst)
+  const total = escalated.length + blocked.length + review.length + mine.length
 
-  if (loading) return <InboxSkeleton />;
+  if (loading) return <InboxSkeleton />
 
-  const shared = { actors, now, onOpen, onAction, onResolve };
+  const shared = { actors, now, onOpen, onAction, onResolve }
 
   return (
     <div className="page">
@@ -184,12 +248,13 @@ export function Inbox({ tasks, actors, me, now, loading, onOpen, onAction, onRes
           <h2>Needs you</h2>
           {total > 0 && (
             <span className="inbox-count mono">
-              {total} item{total !== 1 ? "s" : ""}
+              {total} item{total !== 1 ? 's' : ''}
             </span>
           )}
         </div>
         <p className="inbox-sub">
-          The few things waiting on a decision from you. Everything else is moving agent-to-agent on the board.
+          The few things waiting on a decision from you. Everything else is
+          moving agent-to-agent on the board.
         </p>
       </div>
 
@@ -200,8 +265,9 @@ export function Inbox({ tasks, actors, me, now, loading, onOpen, onAction, onRes
           </div>
           <h3>Nothing needs you right now</h3>
           <p>
-            No escalations, no blocked tasks, no reviews assigned to you, nothing in your queue. Agents are handling the
-            rest — check the board to watch the work flow.
+            No escalations, no blocked tasks, no reviews assigned to you,
+            nothing in your queue. Agents are handling the rest — check the
+            board to watch the work flow.
           </p>
         </div>
       ) : (
@@ -230,11 +296,18 @@ export function Inbox({ tasks, actors, me, now, loading, onOpen, onAction, onRes
             tasks={review}
             {...shared}
           />
-          <Group groupIcon="user" kind="mine" title="Assigned to you" desc="in your queue" tasks={mine} {...shared} />
+          <Group
+            groupIcon="user"
+            kind="mine"
+            title="Assigned to you"
+            desc="in your queue"
+            tasks={mine}
+            {...shared}
+          />
         </Fragment>
       )}
     </div>
-  );
+  )
 }
 
 function InboxSkeleton() {
@@ -252,12 +325,15 @@ function InboxSkeleton() {
           </div>
           <div className="cards">
             {[0, 1].map((j) => (
-              <div key={j} className="icard" style={{ cursor: "default" }}>
+              <div key={j} className="icard" style={{ cursor: 'default' }}>
                 <div className="icard-rail" />
-                <div className="icard-body" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div
+                  className="icard-body"
+                  style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+                >
                   <div className="skel" style={{ width: 90, height: 18 }} />
-                  <div className="skel" style={{ width: "70%", height: 16 }} />
-                  <div className="skel" style={{ width: "100%", height: 40 }} />
+                  <div className="skel" style={{ width: '70%', height: 16 }} />
+                  <div className="skel" style={{ width: '100%', height: 40 }} />
                 </div>
                 <div className="icard-actions">
                   <div className="skel" style={{ height: 32 }} />
@@ -268,5 +344,5 @@ function InboxSkeleton() {
         </div>
       ))}
     </div>
-  );
+  )
 }
