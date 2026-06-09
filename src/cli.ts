@@ -152,7 +152,7 @@ async function addCommand(args: ParsedArgs): Promise<void> {
   const title = args.positional.join(' ').trim()
   if (!title) {
     die(
-      'usage: tasks add "<title>" [--desc ..] [--plan ..] [--assignee ..] [--project ..] [--state todo]',
+      'usage: relay add "<title>" [--desc ..] [--plan ..] [--assignee ..] [--project ..] [--state todo]',
       2
     )
   }
@@ -196,7 +196,7 @@ async function listCommand(args: ParsedArgs): Promise<void> {
 
 async function showCommand(args: ParsedArgs): Promise<void> {
   const [id] = args.positional
-  if (!id) die('usage: tasks show <id>', 2)
+  if (!id) die('usage: relay show <id>', 2)
   const task = await new SqliteTaskStore()
     .get(id)
     .catch((e: Error) => die(e.message))
@@ -221,7 +221,7 @@ async function showCommand(args: ParsedArgs): Promise<void> {
 async function updateCommand(args: ParsedArgs): Promise<void> {
   const [id] = args.positional
   if (!id)
-    die('usage: tasks update <id> [--state ..] [--assignee ..] [--note ..]', 2)
+    die('usage: relay update <id> [--state ..] [--assignee ..] [--note ..]', 2)
   const changes: TaskChanges = {}
   if (args.flags.state !== undefined)
     changes.state = requireState(val(args.flags.state))
@@ -245,7 +245,7 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
 
 async function claimCommand(args: ParsedArgs): Promise<void> {
   const [id] = args.positional
-  if (!id) die('usage: tasks claim <id> [--assignee ..]', 2)
+  if (!id) die('usage: relay claim <id> [--assignee ..]', 2)
   const actor = resolveActor(val(args.flags.actor))
   const git = gitContext()
   const task = await new SqliteTaskStore()
@@ -263,7 +263,7 @@ async function claimCommand(args: ParsedArgs): Promise<void> {
 async function escalateCommand(args: ParsedArgs): Promise<void> {
   const [id] = args.positional
   if (!id)
-    die('usage: tasks escalate <id> --note "<what you need from a human>"', 2)
+    die('usage: relay escalate <id> --note "<what you need from a human>"', 2)
   const task = await new SqliteTaskStore()
     .escalate(id, {
       actor: resolveActor(val(args.flags.actor)),
@@ -275,7 +275,7 @@ async function escalateCommand(args: ParsedArgs): Promise<void> {
 
 async function resolveCommand(args: ParsedArgs): Promise<void> {
   const [id] = args.positional
-  if (!id) die('usage: tasks resolve <id> [--note ..]', 2)
+  if (!id) die('usage: relay resolve <id> [--note ..]', 2)
   const task = await new SqliteTaskStore()
     .resolve(id, {
       actor: resolveActor(val(args.flags.actor)),
@@ -305,26 +305,26 @@ async function uiCommand(args: ParsedArgs): Promise<void> {
     html: loadUiHtml(),
   })
   const url = `http://localhost:${server.port}`
-  process.stderr.write(`agent-tasks UI on ${url}  (you = ${me})\n`)
+  process.stderr.write(`relay UI on ${url}  (you = ${me})\n`)
   openBrowser(url)
 }
 
 const HELP =
-  'tasks — local-first task tracker for multi-agent coordination\n\n' +
+  'relay — local-first task tracker for multi-agent coordination\n\n' +
   'Commands:\n' +
-  '  tasks add "<title>" [--desc ..] [--plan ..] [--assignee ..] [--project ..] [--state todo]\n' +
-  '  tasks list [--state S] [--assignee X] [--project P|--all] [--since ISO] [--json]\n' +
-  '  tasks show <id> [--json]\n' +
-  '  tasks update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
-  '  tasks claim <id> [--assignee X]\n' +
-  '  tasks escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
-  '  tasks resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
-  '  tasks ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
-  '  tasks mcp   (stdio MCP server over the same store)\n\n' +
+  '  relay add "<title>" [--desc ..] [--plan ..] [--assignee ..] [--project ..] [--state todo]\n' +
+  '  relay list [--state S] [--assignee X] [--project P|--all] [--since ISO] [--json]\n' +
+  '  relay show <id> [--json]\n' +
+  '  relay update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
+  '  relay claim <id> [--assignee X]\n' +
+  '  relay escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
+  '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
+  '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
+  '  relay mcp   (stdio MCP server over the same store)\n\n' +
   `States: ${STATES.join(' → ')} (review = needs QA)\n` +
-  'Human inbox: tasks list --needs-human   (also --mine for your assigned tasks)\n' +
+  'Human inbox: relay list --needs-human   (also --mine for your assigned tasks)\n' +
   'Send-backs (a backward move or blocked) require --note.\n' +
-  "Actor: --actor or $AGENT_TASKS_ACTOR (default 'unknown'). Use -- to end option parsing.\n"
+  "Actor: --actor or $RELAY_ACTOR (default 'unknown'). Use -- to end option parsing.\n"
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))

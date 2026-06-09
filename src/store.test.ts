@@ -25,7 +25,7 @@ describe('SqliteTaskStore', () => {
   let store: SqliteTaskStore
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-tasks-test-'))
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'relay-test-'))
     store = new SqliteTaskStore(dir)
   })
 

@@ -13,7 +13,7 @@ describe('MCP tools', () => {
   let client: Client
 
   beforeEach(async () => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-tasks-mcp-'))
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'relay-mcp-'))
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair()
     await createServer(new SqliteTaskStore(dir)).connect(serverTransport)

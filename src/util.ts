@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 
 export function openBrowser(url: string): void {
-  if (process.env.AGENT_TASKS_NO_OPEN === '1') return
+  if (process.env.RELAY_NO_OPEN === '1') return
   const cmd =
     process.platform === 'darwin'
       ? 'open'
@@ -19,14 +19,14 @@ export function generateId(): string {
 
 export function dataDir(): string {
   const base =
-    process.env.AGENT_TASKS_DIR ??
+    process.env.RELAY_DIR ??
     process.env.XDG_DATA_HOME ??
     path.join(os.homedir(), '.local', 'share')
-  return process.env.AGENT_TASKS_DIR ?? path.join(base, 'agent-tasks')
+  return process.env.RELAY_DIR ?? path.join(base, 'relay')
 }
 
 export function resolveActor(flag?: string): string {
-  return flag ?? process.env.AGENT_TASKS_ACTOR ?? 'unknown'
+  return flag ?? process.env.RELAY_ACTOR ?? 'unknown'
 }
 
 export interface GitContext {

@@ -13,9 +13,7 @@ describe('git project detection', () => {
   let dir: string
 
   beforeEach(() => {
-    dir = fs.realpathSync(
-      fs.mkdtempSync(path.join(os.tmpdir(), 'agent-tasks-git-'))
-    )
+    dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'relay-git-')))
   })
 
   afterEach(() => {
