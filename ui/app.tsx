@@ -517,6 +517,7 @@ export function App() {
               onBack={() => goView('board')}
               onAction={onAction}
               onComment={onComment}
+              onResolve={onResolve}
             />
           )}
         </div>
