@@ -153,6 +153,7 @@ export interface TaskStore {
   ): Promise<Task>
   claim(id: string, input: ClaimInput): Promise<Task>
   escalate(id: string, meta: { actor?: string; note?: string }): Promise<Task>
+  comment(id: string, meta: { actor?: string; note?: string }): Promise<Task>
   resolve(id: string, meta: { actor?: string; note?: string }): Promise<Task>
 }
 
@@ -309,7 +310,30 @@ export class SqliteTaskStore implements TaskStore {
           task.needsHuman = true
           const at = new Date().toISOString()
           task.updatedAt = at
-          task.history.push({ at, actor: meta.actor, note })
+          task.history.push({ at, actor: meta.actor, note, kind: 'escalate' })
+          this.writeRow(task)
+          return task
+        })
+        .immediate()
+    )
+  }
+
+  // Append a note to the thread without changing state (agent-to-agent back-and-forth).
+  async comment(
+    id: string,
+    meta: { actor?: string; note?: string }
+  ): Promise<Task> {
+    validateId(id)
+    const note = meta.note?.trim()
+    if (!note) throw new Error('A comment message is required.')
+    return withBusyRetry(() =>
+      this.db
+        .transaction(() => {
+          const task = this.readRow(id)
+          if (!task) throw new Error(`Task "${id}" not found`)
+          const at = new Date().toISOString()
+          task.updatedAt = at
+          task.history.push({ at, actor: meta.actor, note, kind: 'comment' })
           this.writeRow(task)
           return task
         })
@@ -334,6 +358,7 @@ export class SqliteTaskStore implements TaskStore {
             at,
             actor: meta.actor,
             note: meta.note?.trim() || 'resolved (no longer needs a human)',
+            kind: 'resolve',
           })
           this.writeRow(task)
           return task

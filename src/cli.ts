@@ -332,7 +332,7 @@ async function commentCommand(args: ParsedArgs): Promise<void> {
   if (!id || !note)
     die('usage: relay comment <id> "<message>"  (or --note "<message>")', 2)
   const task = await new SqliteTaskStore()
-    .update(id, {}, { actor: resolveActor(val(args.flags.actor)), note })
+    .comment(id, { actor: resolveActor(val(args.flags.actor)), note })
     .catch((e: Error) => die(e.message))
   printTask(task, !!args.flags.json)
 }
