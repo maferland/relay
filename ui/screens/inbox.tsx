@@ -3,6 +3,7 @@ import {
   Avatar,
   Button,
   Icon,
+  LabelChips,
   ProjectTag,
   StateBadge,
 } from '../components/ui.tsx'
@@ -56,6 +57,11 @@ function InboxCard({
           />
         </div>
         <p className="icard-title">{task.title}</p>
+        {task.labels?.length ? (
+          <div className="card-labels">
+            <LabelChips labels={task.labels} />
+          </div>
+        ) : null}
 
         {note && showReason && (
           <div className={`reason ${accentReview ? 'review' : ''}`}>

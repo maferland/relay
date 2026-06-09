@@ -18,6 +18,7 @@ export interface UiTask {
   branch?: string
   worktree?: string
   needsHuman?: boolean
+  labels?: string[]
   assignee?: string
   createdBy?: string
   createdAt: number

@@ -25,9 +25,20 @@ const VALUE_FLAGS = new Set([
   'port',
   'interval',
   'timeout',
+  'label',
+  'add-label',
+  'rm-label',
 ])
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+// Split a comma-separated flag value into trimmed, non-empty labels.
+function csv(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
 
 interface ParsedArgs {
   command: string
@@ -112,9 +123,12 @@ function printTask(task: Task, json: boolean): void {
       ? `\n  branch: ${task.branch ?? '—'}   worktree: ${task.worktree ?? '—'}`
       : ''
   const flag = task.needsHuman ? '  ** NEEDS HUMAN **' : ''
+  const labels = task.labels?.length
+    ? `\n  labels: ${task.labels.join(', ')}`
+    : ''
   process.stdout.write(
     `${task.id}  [${task.state}]${flag}  ${task.title}\n` +
-      `  project: ${task.project}   assignee: ${task.assignee ?? '—'}   updated: ${short(task.updatedAt)}${where}\n`
+      `  project: ${task.project}   assignee: ${task.assignee ?? '—'}   updated: ${short(task.updatedAt)}${where}${labels}\n`
   )
 }
 
@@ -172,6 +186,8 @@ async function addCommand(args: ParsedArgs): Promise<void> {
       branch: val(args.flags.branch),
       worktree: val(args.flags.worktree),
       assignee: val(args.flags.assignee),
+      labels:
+        args.flags.label !== undefined ? csv(val(args.flags.label)) : undefined,
       actor,
       note: val(args.flags.note),
     })
@@ -194,6 +210,8 @@ async function listCommand(args: ParsedArgs): Promise<void> {
     project: scope,
     since: val(args.flags.since),
     needsHuman: !!args.flags['needs-human'],
+    labels:
+      args.flags.label !== undefined ? csv(val(args.flags.label)) : undefined,
   })
   printList(tasks, !!args.flags.json, scope)
 }
@@ -237,6 +255,12 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
   if (args.flags.branch !== undefined) changes.branch = val(args.flags.branch)
   if (args.flags.worktree !== undefined)
     changes.worktree = val(args.flags.worktree)
+  if (args.flags.label !== undefined)
+    changes.labels = csv(val(args.flags.label))
+  if (args.flags['add-label'] !== undefined)
+    changes.addLabels = csv(val(args.flags['add-label']))
+  if (args.flags['rm-label'] !== undefined)
+    changes.removeLabels = csv(val(args.flags['rm-label']))
 
   const task = await new SqliteTaskStore()
     .update(id, changes, {
@@ -418,6 +442,7 @@ const HELP =
   '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
   '  relay mcp   (stdio MCP server over the same store)\n\n' +
   `States: ${STATES.join(' → ')} (review = needs QA)\n` +
+  'Labels: --label a,b on add/update replaces; --add-label / --rm-label adjust; list --label x filters.\n' +
   'Human inbox: relay list --needs-human   (also --mine for your assigned tasks)\n' +
   'Send-backs (a backward move or blocked) require --note.\n' +
   "Actor: --actor or $RELAY_ACTOR (default 'unknown'). Use -- to end option parsing.\n"
