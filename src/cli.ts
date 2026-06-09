@@ -237,16 +237,12 @@ async function mcpCommand(): Promise<void> {
 }
 
 async function uiCommand(args: ParsedArgs): Promise<void> {
-  const { createUiServer, loadUiHtml } = await import("./ui-server.js");
+  const mod = await import("./ui-server.js").catch(() => null);
+  if (!mod) die("UI not built. Run `bun run build` (or `bun run build:ui`) first.");
+  const { createUiServer, loadUiHtml } = mod;
   const me = val(args.flags.me) ?? resolveActor(val(args.flags.actor));
   const port = args.flags.port ? parseInt(val(args.flags.port)!, 10) : undefined;
-  let html: string;
-  try {
-    html = loadUiHtml();
-  } catch (e) {
-    die(e instanceof Error ? e.message : String(e));
-  }
-  const server = createUiServer(new SqliteTaskStore(), { me, port, html });
+  const server = createUiServer(new SqliteTaskStore(), { me, port, html: loadUiHtml() });
   const url = `http://localhost:${server.port}`;
   process.stderr.write(`agent-tasks UI on ${url}  (you = ${me})\n`);
   openBrowser(url);

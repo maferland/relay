@@ -1,17 +1,10 @@
 import { Fragment } from "react";
 import { Avatar, Button, Icon, ProjectTag, StateBadge } from "../components/ui.tsx";
 import { relTime } from "../lib/time.ts";
-import { transitionsFor } from "../lib/transitions.ts";
+import { lastNote, transitionsFor } from "../lib/transitions.ts";
 import type { Actor, Transition, UiTask } from "../lib/types.ts";
 
 type InboxKind = "escalated" | "blocked" | "review" | "mine";
-
-function lastNote(task: UiTask) {
-  for (let i = task.history.length - 1; i >= 0; i--) {
-    if (task.history[i].note) return task.history[i];
-  }
-  return null;
-}
 
 interface CardProps {
   task: UiTask;

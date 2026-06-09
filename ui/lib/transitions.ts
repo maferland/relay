@@ -1,4 +1,11 @@
-import type { State, Transition } from "./types.ts";
+import type { State, Transition, UiEvent, UiTask } from "./types.ts";
+
+export function lastNote(task: UiTask): UiEvent | null {
+  for (let i = task.history.length - 1; i >= 0; i--) {
+    if (task.history[i].note) return task.history[i];
+  }
+  return null;
+}
 
 export const STATE_META: Record<State, { label: string; v: State; order: number }> = {
   todo: { label: "Todo", v: "todo", order: 0 },

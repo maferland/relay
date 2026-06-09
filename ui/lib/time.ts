@@ -10,6 +10,10 @@ export function relTime(ts: number, now?: number): string {
   return Math.round(days / 7) + "w ago";
 }
 
+export function clockTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function dayLabel(ts: number, now: number): string {
   const d = new Date(ts);
   const today = new Date(now);
