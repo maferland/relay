@@ -5,6 +5,10 @@
 
 ---
 
+<p align="center">
+  <img src="assets/screenshot.png" width="640" alt="agent-tasks — the Needs-you inbox">
+</p>
+
 One agent logs a task, another claims and does it, then hands it off for QA. A coordinator polls
 for the handoff, checks the work, and either passes it or sends it back with a note. The list is a
 single durable store on your machine, shared across every session and git worktree — so agents in

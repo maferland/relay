@@ -1,0 +1,6 @@
+dist/
+node_modules/
+bun.lock
+.verdict-runs/
+.verdict-history.json
+CHANGELOG.md

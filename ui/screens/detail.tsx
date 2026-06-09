@@ -1,67 +1,100 @@
-import { Fragment, type ReactNode } from "react";
-import { Avatar, Button, Icon, MoveMenu, ProjectTag, StateBadge } from "../components/ui.tsx";
-import { clockTime, dayLabel, relTime } from "../lib/time.ts";
-import { lastNote, transitionsFor } from "../lib/transitions.ts";
-import type { Actor, State, Transition, UiEvent, UiTask } from "../lib/types.ts";
+import { Fragment, type ReactNode } from 'react'
+import {
+  Avatar,
+  Button,
+  Icon,
+  MoveMenu,
+  ProjectTag,
+  StateBadge,
+} from '../components/ui.tsx'
+import { clockTime, dayLabel, relTime } from '../lib/time.ts'
+import { lastNote, transitionsFor } from '../lib/transitions.ts'
+import type { Actor, State, Transition, UiEvent, UiTask } from '../lib/types.ts'
 
-function TransitionPill({ from, to }: { from: State | null; to: State | null }) {
+function TransitionPill({
+  from,
+  to,
+}: {
+  from: State | null
+  to: State | null
+}) {
   // Note-only event (escalate / resolve / reassign): no state change.
   if (!from && !to) {
     return (
       <span className="mini-trans">
-        <span className="badge-dot" style={{ background: "var(--text-faint)" }} />{" "}
-        <span style={{ color: "var(--text-faint)" }}>note</span>
+        <span
+          className="badge-dot"
+          style={{ background: 'var(--text-faint)' }}
+        />{' '}
+        <span style={{ color: 'var(--text-faint)' }}>note</span>
       </span>
-    );
+    )
   }
   if (!from && to) {
     return (
       <span className="mini-trans">
-        <span className="badge-dot" style={{ background: "var(--text-faint)" }} /> created → <StateBadge state={to} size="sm" />
+        <span
+          className="badge-dot"
+          style={{ background: 'var(--text-faint)' }}
+        />{' '}
+        created → <StateBadge state={to} size="sm" />
       </span>
-    );
+    )
   }
   if (from === to || !to) {
     return (
       <span className="mini-trans">
-        <StateBadge state={from!} size="sm" /> <span style={{ color: "var(--text-faint)" }}>note</span>
+        <StateBadge state={from!} size="sm" />{' '}
+        <span style={{ color: 'var(--text-faint)' }}>note</span>
       </span>
-    );
+    )
   }
   return (
     <span className="tl-transition">
       <StateBadge state={from!} size="sm" />
-      <Icon name="arrowRight" size={12} style={{ color: "var(--text-faint)" }} />
+      <Icon
+        name="arrowRight"
+        size={12}
+        style={{ color: 'var(--text-faint)' }}
+      />
       <StateBadge state={to} size="sm" />
     </span>
-  );
+  )
 }
 
 function eventKind(ev: UiEvent): string {
-  if (ev.to === "blocked") return "is-block";
-  if (ev.to === "done") return "is-done";
-  if (ev.from === "review" && ev.to === "todo") return "is-reject";
-  return "";
+  if (ev.to === 'blocked') return 'is-block'
+  if (ev.to === 'done') return 'is-done'
+  if (ev.from === 'review' && ev.to === 'todo') return 'is-reject'
+  return ''
 }
 function eventIcon(ev: UiEvent): string {
-  if (ev.to === "blocked") return "alert";
-  if (ev.to === "done") return "check";
-  if (ev.from === "review" && ev.to === "todo") return "arrowLeft";
-  if (!ev.from && !ev.to) return "dot"; // note-only (escalate/resolve)
-  if (!ev.from) return "plus"; // creation
-  return "arrowRight";
+  if (ev.to === 'blocked') return 'alert'
+  if (ev.to === 'done') return 'check'
+  if (ev.from === 'review' && ev.to === 'todo') return 'arrowLeft'
+  if (!ev.from && !ev.to) return 'dot' // note-only (escalate/resolve)
+  if (!ev.from) return 'plus' // creation
+  return 'arrowRight'
 }
 
-function Timeline({ history, actors, now }: { history: UiEvent[]; actors: Record<string, Actor>; now: number }) {
-  const days: { lbl: string; evs: UiEvent[] }[] = [];
-  let cur: { lbl: string; evs: UiEvent[] } | null = null;
+function Timeline({
+  history,
+  actors,
+  now,
+}: {
+  history: UiEvent[]
+  actors: Record<string, Actor>
+  now: number
+}) {
+  const days: { lbl: string; evs: UiEvent[] }[] = []
+  let cur: { lbl: string; evs: UiEvent[] } | null = null
   for (const ev of history) {
-    const lbl = dayLabel(ev.at, now);
+    const lbl = dayLabel(ev.at, now)
     if (!cur || cur.lbl !== lbl) {
-      cur = { lbl, evs: [] };
-      days.push(cur);
+      cur = { lbl, evs: [] }
+      days.push(cur)
     }
-    cur.evs.push(ev);
+    cur.evs.push(ev)
   }
   return (
     <div className="timeline">
@@ -72,7 +105,10 @@ function Timeline({ history, actors, now }: { history: UiEvent[]; actors: Record
             <span className="line" />
           </div>
           {d.evs.map((ev, i) => {
-            const a = actors[ev.actor] || { name: ev.actor, kind: "agent" as const };
+            const a = actors[ev.actor] || {
+              name: ev.actor,
+              kind: 'agent' as const,
+            }
             return (
               <div className={`tl-item ${eventKind(ev)}`} key={i}>
                 <div className="tl-spine">
@@ -85,7 +121,7 @@ function Timeline({ history, actors, now }: { history: UiEvent[]; actors: Record
                     <Avatar actorId={ev.actor} actors={actors} size={18} />
                     <span className="tl-actor">
                       {a.name}
-                      {a.kind === "human" ? " (you)" : ""}
+                      {a.kind === 'human' ? ' (you)' : ''}
                     </span>
                     <TransitionPill from={ev.from} to={ev.to} />
                     <span className="tl-time">{clockTime(ev.at)}</span>
@@ -93,15 +129,23 @@ function Timeline({ history, actors, now }: { history: UiEvent[]; actors: Record
                   {ev.note && <div className="tl-note">{ev.note}</div>}
                 </div>
               </div>
-            );
+            )
           })}
         </Fragment>
       ))}
     </div>
-  );
+  )
 }
 
-function MetaRow({ icon, k, children }: { icon: string; k: string; children: ReactNode }) {
+function MetaRow({
+  icon,
+  k,
+  children,
+}: {
+  icon: string
+  k: string
+  children: ReactNode
+}) {
   return (
     <div className="dmeta-row">
       <span className="k">
@@ -109,24 +153,34 @@ function MetaRow({ icon, k, children }: { icon: string; k: string; children: Rea
       </span>
       <span className="val">{children}</span>
     </div>
-  );
+  )
 }
 
 interface DetailProps {
-  task: UiTask | undefined;
-  actors: Record<string, Actor>;
-  me: string;
-  now: number;
-  onBack: () => void;
-  onAction: (task: UiTask, t: Transition) => void;
+  task: UiTask | undefined
+  actors: Record<string, Actor>
+  me: string
+  now: number
+  onBack: () => void
+  onAction: (task: UiTask, t: Transition) => void
 }
 
-export function Detail({ task, actors, me, now, onBack, onAction }: DetailProps) {
-  if (!task) return null;
-  const trans = transitionsFor(task.state);
-  const note = lastNote(task);
-  const showBanner = task.needsHuman || task.state === "blocked" || (task.state === "review" && task.assignee === me);
-  const mono = { fontSize: "var(--fs-xs)" } as const;
+export function Detail({
+  task,
+  actors,
+  me,
+  now,
+  onBack,
+  onAction,
+}: DetailProps) {
+  if (!task) return null
+  const trans = transitionsFor(task.state)
+  const note = lastNote(task)
+  const showBanner =
+    task.needsHuman ||
+    task.state === 'blocked' ||
+    (task.state === 'review' && task.assignee === me)
+  const mono = { fontSize: 'var(--fs-xs)' } as const
 
   return (
     <div className="page page-wide">
@@ -135,17 +189,24 @@ export function Detail({ task, actors, me, now, onBack, onAction }: DetailProps)
       </button>
 
       {showBanner && note && (
-        <div className={`dbanner ${task.state === "review" && !task.needsHuman ? "review" : ""}`}>
+        <div
+          className={`dbanner ${task.state === 'review' && !task.needsHuman ? 'review' : ''}`}
+        >
           <span className="db-ic">
-            <Icon name={task.state === "review" && !task.needsHuman ? "send" : "alert"} size={18} />
+            <Icon
+              name={
+                task.state === 'review' && !task.needsHuman ? 'send' : 'alert'
+              }
+              size={18}
+            />
           </span>
           <div>
             <h5>
               {task.needsHuman
-                ? "Escalated — an agent needs a decision from you"
-                : task.state === "blocked"
-                  ? "This task is blocked and needs your decision"
-                  : "Assigned to you for review"}
+                ? 'Escalated — an agent needs a decision from you'
+                : task.state === 'blocked'
+                  ? 'This task is blocked and needs your decision'
+                  : 'Assigned to you for review'}
             </h5>
             <p>{note.note}</p>
           </div>
@@ -161,7 +222,8 @@ export function Detail({ task, actors, me, now, onBack, onAction }: DetailProps)
               <MoveMenu task={task} onAction={onAction} />
               <ProjectTag project={task.project} />
               <span className="meta">
-                <Icon name="clock" size={13} /> updated {relTime(task.updatedAt, now)}
+                <Icon name="clock" size={13} /> updated{' '}
+                {relTime(task.updatedAt, now)}
               </span>
             </div>
           </div>
@@ -192,7 +254,15 @@ export function Detail({ task, actors, me, now, onBack, onAction }: DetailProps)
               {trans.map((t, i) => (
                 <Button
                   key={t.to + String(i)}
-                  variant={t.primary ? (t.good ? "accent" : "primary") : t.danger ? "dangerout" : "default"}
+                  variant={
+                    t.primary
+                      ? t.good
+                        ? 'accent'
+                        : 'primary'
+                      : t.danger
+                        ? 'dangerout'
+                        : 'default'
+                  }
                   size="md"
                   icon={t.icon}
                   onClick={() => onAction(task, t)}
@@ -215,7 +285,9 @@ export function Detail({ task, actors, me, now, onBack, onAction }: DetailProps)
                 </MetaRow>
               ) : (
                 <MetaRow icon="branch" k="branch">
-                  <span style={{ color: "var(--text-faint)" }}>not claimed yet</span>
+                  <span style={{ color: 'var(--text-faint)' }}>
+                    not claimed yet
+                  </span>
                 </MetaRow>
               )}
               {task.worktree && (
@@ -227,18 +299,36 @@ export function Detail({ task, actors, me, now, onBack, onAction }: DetailProps)
               )}
               <MetaRow icon="user" k="assignee">
                 {task.assignee ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-                    <Avatar actorId={task.assignee} actors={actors} size={18} /> {actors[task.assignee]?.name || task.assignee}
-                    {task.assignee === me ? " (you)" : ""}
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                    }}
+                  >
+                    <Avatar actorId={task.assignee} actors={actors} size={18} />{' '}
+                    {actors[task.assignee]?.name || task.assignee}
+                    {task.assignee === me ? ' (you)' : ''}
                   </span>
                 ) : (
-                  <span style={{ color: "var(--text-faint)" }}>unassigned</span>
+                  <span style={{ color: 'var(--text-faint)' }}>unassigned</span>
                 )}
               </MetaRow>
               {task.createdBy && (
                 <MetaRow icon="bot" k="created by">
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-                    <Avatar actorId={task.createdBy} actors={actors} size={18} /> {actors[task.createdBy]?.name || task.createdBy}
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                    }}
+                  >
+                    <Avatar
+                      actorId={task.createdBy}
+                      actors={actors}
+                      size={18}
+                    />{' '}
+                    {actors[task.createdBy]?.name || task.createdBy}
                   </span>
                 </MetaRow>
               )}
@@ -250,5 +340,5 @@ export function Detail({ task, actors, me, now, onBack, onAction }: DetailProps)
         </aside>
       </div>
     </div>
-  );
+  )
 }

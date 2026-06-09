@@ -15,6 +15,7 @@ the work happens agent-to-agent without me. The UI exists so I can see, in one g
 that are waiting on me — and act on them.
 
 ## What "needs a human" means (design the inbox around this)
+
 - **Escalated** (`needsHuman: true`): an agent explicitly flagged that it needs a person — a
   credential, an approval, a judgement call. Each escalation carries a required note saying what's
   needed. This flag is orthogonal to state (a task can be `doing` and still need a human). This is
@@ -27,8 +28,9 @@ that are waiting on me — and act on them.
 This "Needs you" inbox is the hero of the UI. Everything else (the full board) is secondary.
 
 ## Workflow & states
+
 States flow `todo → doing → review → done`, with `blocked` to the side. `review` is the QA-handoff
-signal. Transitions that send work *backward* (e.g. `review → todo` rejection) or into `blocked`
+signal. Transitions that send work _backward_ (e.g. `review → todo` rejection) or into `blocked`
 **require a note** — the UI must enforce/encourage that note on those actions.
 
 Typical loop: someone logs a task (`todo`) → an agent claims it (`doing`, stamping the git branch +
@@ -36,6 +38,7 @@ worktree where it's working) → moves it to `review` when ready → a coordinat
 or rejects it back with a note. The back-and-forth between worker and QA is the task's history.
 
 ## Data model (one task)
+
 - `id`, `title`, `description` (what's being done), `plan` (the approach/steps)
 - `state`: todo | doing | review | done | blocked
 - `needsHuman` (boolean): escalated, waiting on a person — orthogonal to state
@@ -47,6 +50,7 @@ or rejects it back with a note. The back-and-forth between worker and QA is the 
   conversation between worker and QA — render it as a timeline.
 
 ## Screens / components to propose
+
 1. **Needs-you inbox** (landing): the human-attention items above, prioritized and scannable. Each
    card shows title, state badge, project, the reason note (for blocked/rejected), who's waiting, and
    the primary action (unblock, QA pass/reject, etc.). Make "blocked" visually loudest.
@@ -56,6 +60,7 @@ or rejects it back with a note. The back-and-forth between worker and QA is the 
    and the transition actions. The send-back action must prompt for a required note.
 
 ## Design constraints & taste
+
 - Developer tool: dense, fast, scannable, keyboard-first. Terminal-adjacent aesthetic is welcome.
   Not a consumer SaaS dashboard.
 - Light and dark themes.
@@ -65,6 +70,7 @@ or rejects it back with a note. The back-and-forth between worker and QA is the 
   and for empty, loading, and "nothing needs you right now" states.
 
 ## Deliver
+
 Information architecture, the key screens (low-fi wireframes or Figma frames), a component breakdown,
 the state/empty/loading variants, and the visual system (color, type, spacing, the state + urgency
 language). Start with the Needs-you inbox.

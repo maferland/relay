@@ -42,7 +42,7 @@ tasks add "Fix the login redirect loop" --assignee worker-1 \
 ```
 
 Prints the new task (with its `id`). Defaults to the current git repo as the `project` and
-`todo` as the state. Use `--desc` for *what* is being done and `--plan` for *how*. If a title
+`todo` as the state. Use `--desc` for _what_ is being done and `--plan` for _how_. If a title
 contains a leading dash, put it after a `--` sentinel: `tasks add -- --weird title`.
 
 ### Picking up and doing work
@@ -100,7 +100,7 @@ stays findable regardless of state and doesn't conflate "blocked on another task
 
 Moving a task **backward** (e.g. `review → todo`, `review → doing`, reopening `done`) or to
 `blocked` **requires `--note`**. The command fails without one. This is on purpose: the next
-actor needs to know *why* it came back. Forward moves don't need a note (but a short one helps).
+actor needs to know _why_ it came back. Forward moves don't need a note (but a short one helps).
 
 The back-and-forth lives in `tasks show <id>` under `history` — every transition records who,
 when, the state change, and the note. That is the conversation between the worker and QA.
@@ -125,15 +125,15 @@ moved since I last looked". Use `--json` for machine-readable output you can par
 
 ## Command reference
 
-| Command | Purpose |
-|---|---|
-| `tasks add "<title>" [--desc] [--plan] [--assignee] [--project] [--state]` | log a task |
-| `tasks list [--state] [--assignee] [--project\|--all] [--since] [--json]` | filtered list |
-| `tasks show <id> [--json]` | one task + full history |
-| `tasks update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note |
-| `tasks claim <id> [--assignee]` | assign to self, move to `doing`, stamp branch/worktree |
-| `tasks escalate <id> --note "<what you need>"` | flag as needing a human |
-| `tasks resolve <id> [--note]` | clear the needs-human flag |
+| Command                                                                         | Purpose                                                |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `tasks add "<title>" [--desc] [--plan] [--assignee] [--project] [--state]`      | log a task                                             |
+| `tasks list [--state] [--assignee] [--project\|--all] [--since] [--json]`       | filtered list                                          |
+| `tasks show <id> [--json]`                                                      | one task + full history                                |
+| `tasks update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note                                   |
+| `tasks claim <id> [--assignee]`                                                 | assign to self, move to `doing`, stamp branch/worktree |
+| `tasks escalate <id> --note "<what you need>"`                                  | flag as needing a human                                |
+| `tasks resolve <id> [--note]`                                                   | clear the needs-human flag                             |
 
 Pass an empty string (`--assignee ""`) to clear a field. Identity comes from `--actor` or
 `$AGENT_TASKS_ACTOR`.
