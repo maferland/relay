@@ -4,6 +4,7 @@ import { z } from 'zod/v4'
 import { buildTask, type TaskStore } from './store.js'
 import { STATES, type Task } from './types.js'
 import { detectProject, gitContext } from './util.js'
+import { VERSION } from './version.js'
 
 const StateEnum = z.enum(STATES)
 
@@ -261,7 +262,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
 }
 
 export function createServer(store: TaskStore): McpServer {
-  const server = new McpServer({ name: 'relay', version: '0.1.0' })
+  const server = new McpServer({ name: 'relay', version: VERSION })
   registerTools(server, store)
   return server
 }
