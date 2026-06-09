@@ -73,7 +73,8 @@ A local web view of what needs you — escalated, blocked, reviews assigned to y
 relay ui --me <your-name>     # opens a local browser UI over the same store
 ```
 
-The inbox is live; the full board and task-detail views are in progress.
+Three views: the Needs-you inbox, a board (list + drag-to-move kanban), and a task detail with the
+full history timeline and a comment composer.
 
 ### MCP
 
