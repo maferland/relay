@@ -105,6 +105,13 @@ actor needs to know _why_ it came back. Forward moves don't need a note (but a s
 The back-and-forth lives in `relay show <id>` under `history` — every transition records who,
 when, the state change, and the note. That is the conversation between the worker and QA.
 
+To add to that conversation **without** a state change — a question, context, an answer — use
+`relay comment <id> "<message>"`. It appends a note-only entry to the same thread:
+
+```bash
+relay comment task-1a2b3c4d "what did you mean by 'the redirect case'?"
+```
+
 ## Reacting to changes
 
 Two ways, depending on whether you want to keep working while you wait.
@@ -149,6 +156,7 @@ looked". Use `--json` for machine-readable output.
 | `relay show <id> [--json]`                                                      | one task + full history                                |
 | `relay update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note                                   |
 | `relay claim <id> [--assignee]`                                                 | assign to self, move to `doing`, stamp branch/worktree |
+| `relay comment <id> "<message>"`                                                | add a note to the thread, no state change              |
 | `relay watch <id> [--state] [--timeout] [--json]`                               | block until a task changes (run in background)         |
 | `relay escalate <id> --note "<what you need>"`                                  | flag as needing a human                                |
 | `relay resolve <id> [--note]`                                                   | clear the needs-human flag                             |
@@ -157,4 +165,4 @@ Pass an empty string (`--assignee ""`) to clear a field. Identity comes from `--
 `$RELAY_ACTOR`.
 
 Same operations are available as MCP tools (`add_task`, `list_tasks`, `get_task`, `update_task`,
-`claim_task`) for non-interactive scripting.
+`claim_task`, `comment_task`, `escalate_task`, `resolve_task`) for non-interactive scripting.

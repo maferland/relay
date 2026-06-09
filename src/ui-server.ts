@@ -121,7 +121,7 @@ export function createUiServer(store: SqliteTaskStore, opts: UiServerOptions) {
       }
 
       const match = p.match(
-        /^\/api\/tasks\/([^/]+)\/(transition|escalate|resolve)$/
+        /^\/api\/tasks\/([^/]+)\/(transition|escalate|resolve|comment)$/
       )
       if (match && req.method === 'POST') {
         const id = decodeURIComponent(match[1])
@@ -145,6 +145,13 @@ export function createUiServer(store: SqliteTaskStore, opts: UiServerOptions) {
           if (action === 'escalate') {
             return json(
               adapt(await store.escalate(id, { actor: me, note: body.note }))
+            )
+          }
+          if (action === 'comment') {
+            if (!body.note?.trim())
+              return json({ error: 'A comment message is required' }, 400)
+            return json(
+              adapt(await store.update(id, {}, { actor: me, note: body.note }))
             )
           }
           return json(

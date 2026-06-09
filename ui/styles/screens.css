@@ -716,6 +716,31 @@
   border-radius: var(--r-md);
   padding: 9px 12px;
 }
+.comment-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  align-items: flex-end;
+}
+.comment-composer textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 9px 12px;
+}
+.comment-composer textarea:focus {
+  outline: none;
+  border-color: var(--border-strong);
+}
+
 .tl-item.is-reject .tl-node {
   border-color: var(--st-blocked-bd);
   background: var(--st-blocked-bg);
