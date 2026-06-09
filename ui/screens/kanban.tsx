@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Avatar, Icon } from '../components/ui.tsx'
-import { lastNote, STATE_META, transitionMeta } from '../lib/transitions.ts'
+import {
+  attentionNote,
+  STATE_META,
+  transitionMeta,
+} from '../lib/transitions.ts'
 import type { Actor, State, Transition, UiTask } from '../lib/types.ts'
 
 const FLOW_COLS: State[] = ['todo', 'doing', 'review', 'done']
@@ -30,7 +34,7 @@ function KanbanCard({
   onDragEnd: () => void
   dragging: boolean
 }) {
-  const note = task.state === 'blocked' ? lastNote(task) : null
+  const note = task.state === 'blocked' ? attentionNote(task) : null
   const needsMe =
     task.needsHuman ||
     task.state === 'blocked' ||

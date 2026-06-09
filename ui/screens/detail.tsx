@@ -8,7 +8,7 @@ import {
   StateBadge,
 } from '../components/ui.tsx'
 import { clockTime, dayLabel, relTime } from '../lib/time.ts'
-import { lastNote, transitionsFor } from '../lib/transitions.ts'
+import { attentionNote, transitionsFor } from '../lib/transitions.ts'
 import type { Actor, State, Transition, UiEvent, UiTask } from '../lib/types.ts'
 
 function TransitionPill({
@@ -207,7 +207,7 @@ export function Detail({
 }: DetailProps) {
   if (!task) return null
   const trans = transitionsFor(task.state)
-  const note = lastNote(task)
+  const note = attentionNote(task)
   const showBanner =
     task.needsHuman ||
     task.state === 'blocked' ||

@@ -7,7 +7,7 @@ import {
   StateBadge,
 } from '../components/ui.tsx'
 import { relTime } from '../lib/time.ts'
-import { lastNote, transitionsFor } from '../lib/transitions.ts'
+import { attentionNote, transitionsFor } from '../lib/transitions.ts'
 import type { Actor, Transition, UiTask } from '../lib/types.ts'
 
 type InboxKind = 'escalated' | 'blocked' | 'review' | 'mine'
@@ -35,7 +35,7 @@ function InboxCard({
   const primary = trans.find((t) => t.primary) || trans[0]
   const secondary =
     trans.find((t) => t !== primary && (t.danger || t.good)) || trans[1]
-  const note = lastNote(task)
+  const note = attentionNote(task)
   const showReason =
     kind === 'blocked' || kind === 'review' || kind === 'escalated'
   const accentReview = kind === 'review'
