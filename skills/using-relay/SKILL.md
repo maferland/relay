@@ -20,7 +20,8 @@ Set who you are once per session so your changes are attributable:
 export RELAY_ACTOR=worker-1   # or: lead, qa, reviewer, your name…
 ```
 
-Every command also takes `--actor <name>` to override per call. Default is `unknown` — set it.
+Every command also takes `--actor <name>` to override per call. With neither set, relay falls
+back to your `$USER`; set `RELAY_ACTOR` so each agent's changes are attributable by role.
 
 ## The workflow
 
