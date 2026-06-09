@@ -3,6 +3,7 @@ import {
   Avatar,
   Button,
   Icon,
+  LabelChips,
   MoveMenu,
   ProjectTag,
   StateBadge,
@@ -310,6 +311,13 @@ export function Detail({
                   {task.project}
                 </span>
               </MetaRow>
+              {task.labels?.length ? (
+                <MetaRow icon="tag" k="labels">
+                  <span className="card-labels">
+                    <LabelChips labels={task.labels} />
+                  </span>
+                </MetaRow>
+              ) : null}
               {task.branch ? (
                 <MetaRow icon="branch" k="branch">
                   <span className="mono" style={mono}>

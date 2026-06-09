@@ -304,4 +304,53 @@ describe('SqliteTaskStore', () => {
       expect([a.state, b.state]).toEqual(['doing', 'doing'])
     })
   })
+
+  describe('labels', () => {
+    it('persists labels and filters by them (AND across labels)', async () => {
+      await store.add(
+        makeTask('task-l1', { labels: ['awaiting-code-review', 'backend'] })
+      )
+      await store.add(makeTask('task-l2', { labels: ['backend'] }))
+      await store.add(makeTask('task-l3'))
+      expect((await store.get('task-l1'))!.labels).toEqual([
+        'awaiting-code-review',
+        'backend',
+      ])
+      const backend = await store.list({ labels: ['backend'] })
+      expect(backend.map((t) => t.id).sort()).toEqual(['task-l1', 'task-l2'])
+      const both = await store.list({
+        labels: ['backend', 'awaiting-code-review'],
+      })
+      expect(both.map((t) => t.id)).toEqual(['task-l1'])
+    })
+
+    it('adds and removes labels atomically without clobbering', async () => {
+      await store.add(makeTask('task-l4', { labels: ['a', 'b'] }))
+      const updated = await store.update(
+        'task-l4',
+        { addLabels: ['c'], removeLabels: ['a'] },
+        { actor: 'w' }
+      )
+      expect(updated.labels!.sort()).toEqual(['b', 'c'])
+    })
+
+    it('replacing with an empty array clears labels', async () => {
+      await store.add(makeTask('task-l5', { labels: ['x'] }))
+      const updated = await store.update(
+        'task-l5',
+        { labels: [] },
+        { actor: 'w' }
+      )
+      expect(updated.labels).toBeUndefined()
+    })
+
+    it('dedupes labels at build time', () => {
+      const t = buildTask({
+        title: 'x',
+        project: 'demo',
+        labels: ['a', 'a', 'b'],
+      })
+      expect(t.labels).toEqual(['a', 'b'])
+    })
+  })
 })

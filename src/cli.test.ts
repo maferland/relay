@@ -326,6 +326,50 @@ describe('tasks CLI', () => {
     expect(stderr).toMatch(/local-first task tracker/)
   })
 
+  describe('labels', () => {
+    it('sets, adjusts, and filters by labels', async () => {
+      const { id } = await addTask('labelled', ['--label', 'backend,api'])
+      const after = JSON.parse(
+        (
+          await run([
+            'update',
+            id,
+            '--add-label',
+            'code-reviewed',
+            '--rm-label',
+            'api',
+            '--json',
+          ])
+        ).stdout
+      ) as Task
+      expect(after.labels!.sort()).toEqual(['backend', 'code-reviewed'])
+
+      const hit = JSON.parse(
+        (
+          await run([
+            'list',
+            '--label',
+            'code-reviewed',
+            '--project',
+            'demo',
+            '--json',
+          ])
+        ).stdout
+      ) as Task[]
+      expect(hit.map((t) => t.id)).toContain(id)
+
+      const miss = await run([
+        'list',
+        '--label',
+        'nope',
+        '--project',
+        'demo',
+        '--json',
+      ])
+      expect(miss.stdout.trim()).toBe('[]')
+    })
+  })
+
   describe('comment', () => {
     it('appends a note-only event without changing state', async () => {
       const { id } = await addTask('discuss', ['--assignee', 'w1'])

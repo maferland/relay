@@ -51,6 +51,16 @@ States flow `todo → doing → review → done`, with `blocked` to the side. `r
 QA-handoff signal. Any send-back (a backward move or `blocked`) requires a `--note`, so the next
 actor always knows why.
 
+Tag work with free-form labels (orthogonal to state) and filter on them, for review granularity
+without new states. Leave a note on the thread without a state change with `relay comment`:
+
+```bash
+relay add "fix auth" --label awaiting-code-review
+relay update task-1a2b3c4d --add-label code-reviewed --rm-label awaiting-code-review
+relay list --label code-reviewed
+relay comment task-1a2b3c4d "what did you mean by 'the redirect case'?"
+```
+
 ### Web UI
 
 A local web view of what needs you — escalated, blocked, reviews assigned to you, and your queue:
