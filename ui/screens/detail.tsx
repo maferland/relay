@@ -1,4 +1,10 @@
-import { Fragment, type ReactNode, useState } from 'react'
+import {
+  Fragment,
+  type ReactNode,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   Avatar,
   Button,
@@ -93,6 +99,32 @@ function eventIcon(ev: UiEvent): string {
   return 'arrowRight'
 }
 
+function TimelineNote({ note }: { note: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    setOverflows(el.scrollHeight - el.clientHeight > 1)
+  }, [note])
+  return (
+    <div className="tl-note">
+      <div ref={ref} className={`tl-note-body${expanded ? '' : ' is-clamped'}`}>
+        {note}
+      </div>
+      {(overflows || expanded) && (
+        <button
+          className="tl-note-toggle"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 function Timeline({
   history,
   actors,
@@ -142,7 +174,7 @@ function Timeline({
                     <TransitionPill from={ev.from} to={ev.to} kind={ev.kind} />
                     <span className="tl-time">{clockTime(ev.at)}</span>
                   </div>
-                  {ev.note && <div className="tl-note">{ev.note}</div>}
+                  {ev.note && <TimelineNote note={ev.note} />}
                 </div>
               </div>
             )
