@@ -1,10 +1,16 @@
 #!/usr/bin/env bun
 import { execSync } from 'child_process'
-import { rmSync } from 'fs'
+import { readFileSync, rmSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+// Bake package.json's version into the compiled CLI so `relay --version` reports it.
+const version = JSON.parse(
+  readFileSync(join(root, 'package.json'), 'utf8')
+).version
+const define = `--define 'RELAY_VERSION="${version}"'`
 
 function run(cmd) {
   console.log(`> ${cmd}`)
@@ -27,9 +33,9 @@ const RELEASE_TARGETS = {
 if (process.env.RELAY_RELEASE === '1') {
   for (const [name, target] of Object.entries(RELEASE_TARGETS)) {
     run(
-      `bun build --compile --target=${target} src/cli.ts --outfile dist/${name}`
+      `bun build --compile --target=${target} ${define} src/cli.ts --outfile dist/${name}`
     )
   }
 } else {
-  run('bun build --compile src/cli.ts --outfile dist/relay')
+  run(`bun build --compile ${define} src/cli.ts --outfile dist/relay`)
 }

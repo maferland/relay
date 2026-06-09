@@ -7,6 +7,9 @@ import {
   type TaskChanges,
 } from './types.js'
 import { detectProject, gitContext, openBrowser, resolveActor } from './util.js'
+import { upgradeCommand } from './upgrade.js'
+import { maybeNudge } from './update-check.js'
+import { VERSION } from './version.js'
 
 const BOOL_FLAGS = new Set(['all', 'json', 'needs-human', 'mine', 'help'])
 const VALUE_FLAGS = new Set([
@@ -440,7 +443,8 @@ const HELP =
   '  relay escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
   '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
   '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
-  '  relay mcp   (stdio MCP server over the same store)\n\n' +
+  '  relay mcp   (stdio MCP server over the same store)\n' +
+  '  relay upgrade   ·   relay --version\n\n' +
   `States: ${STATES.join(' → ')} (review = needs QA)\n` +
   'Labels: --label a,b on add/update replaces; --add-label / --rm-label adjust; list --label x filters.\n' +
   'Human inbox: relay list --needs-human   (also --mine for your assigned tasks)\n' +
@@ -449,11 +453,18 @@ const HELP =
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
+  if (['--version', '-v', 'version'].includes(args.command)) {
+    process.stdout.write(VERSION + '\n')
+    process.exit(0)
+  }
   if (args.flags.help || args.command === 'help') {
     process.stdout.write(HELP)
     process.exit(0)
   }
+  maybeNudge(args.command, !!args.flags.json)
   switch (args.command) {
+    case 'upgrade':
+      return upgradeCommand()
     case 'add':
       return addCommand(args)
     case 'escalate':
