@@ -376,6 +376,24 @@ describe('tasks CLI', () => {
     })
   })
 
+  describe('link', () => {
+    it('attaches a GitHub PR link with --pr', async () => {
+      const { id } = await addTask('has a pr')
+      const after = JSON.parse(
+        (await run(['link', id, '--pr', 'maferland/relay#1', '--json'])).stdout
+      ) as Task & {
+        links?: { system: string; kind: string; ref: string; url?: string }[]
+      }
+      expect(after.links).toHaveLength(1)
+      expect(after.links![0]).toMatchObject({
+        system: 'github',
+        kind: 'pr',
+        ref: 'maferland/relay#1',
+        url: 'https://github.com/maferland/relay/pull/1',
+      })
+    })
+  })
+
   describe('comment', () => {
     it('appends a note-only event without changing state', async () => {
       const { id } = await addTask('discuss', ['--assignee', 'w1'])

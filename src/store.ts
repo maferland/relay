@@ -113,6 +113,14 @@ function applyChanges(
     for (const l of changes.removeLabels ?? []) set.delete(l)
     task.labels = set.size ? [...set] : undefined
   }
+  if (changes.addLink) {
+    const add = changes.addLink
+    const kept = (task.links ?? []).filter(
+      (l) => !(l.system === add.system && l.ref === add.ref)
+    )
+    kept.push(add)
+    task.links = kept
+  }
   task.updatedAt = event.at
   task.history.push(event)
 }

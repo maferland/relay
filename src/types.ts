@@ -30,6 +30,15 @@ export interface TaskEvent {
   note?: string
 }
 
+// A link to this task's counterpart on a remote system (e.g. a GitHub PR).
+export interface TaskLink {
+  system: string // e.g. 'github'
+  kind: string // e.g. 'pr'
+  ref: string // e.g. 'owner/repo#123'
+  url?: string
+  lastStatus?: string // last summary seen by `relay sync`, to detect changes
+}
+
 export interface Task {
   id: string
   title: string
@@ -41,6 +50,7 @@ export interface Task {
   worktree?: string // worktree dir the work happens in
   needsHuman?: boolean // escalated: waiting on a human, orthogonal to state
   labels?: string[] // free-form tags, orthogonal to state (e.g. awaiting-code-review)
+  links?: TaskLink[] // remote counterparts (PRs, tickets) a connector can poll
   assignee?: string
   createdBy?: string
   createdAt: string
@@ -59,4 +69,5 @@ export interface TaskChanges {
   labels?: string[] // replace the whole set
   addLabels?: string[] // add without clobbering
   removeLabels?: string[] // remove without clobbering
+  addLink?: TaskLink // add a link, replacing any with the same system+ref
 }

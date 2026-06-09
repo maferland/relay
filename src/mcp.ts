@@ -5,6 +5,7 @@ import { buildTask, type TaskStore } from './store.js'
 import { STATES, type Task } from './types.js'
 import { detectProject, gitContext } from './util.js'
 import { VERSION } from './version.js'
+import { syncLink } from './connectors/index.js'
 
 const StateEnum = z.enum(STATES)
 
@@ -254,6 +255,30 @@ export function registerTools(server: McpServer, store: TaskStore): void {
           worktree: worktree ?? git.worktree,
         })
         return ok(`Claimed ${summarize(task)}`)
+      } catch (e) {
+        return err(e)
+      }
+    }
+  )
+
+  server.registerTool(
+    'sync_task',
+    {
+      title: 'Sync a task with its remote links',
+      description:
+        'Poll each linked remote (e.g. a GitHub PR) and, when its status changed, record it on the task thread and tag it (changes-requested / ci-failed / merged). Needs the gh CLI.',
+      inputSchema: z.object({ id: z.string(), actor: z.string().optional() }),
+    },
+    async ({ id, actor }): Promise<CallToolResult> => {
+      try {
+        const task = await store.get(id)
+        if (!task) return fail(`Task "${id}" not found.`)
+        if (!task.links?.length) return ok(`No links on ${id}.`)
+        let changes = 0
+        for (const link of task.links) {
+          if (await syncLink(store, id, link, actor)) changes++
+        }
+        return ok(`Synced ${id}: ${changes} change(s).`)
       } catch (e) {
         return err(e)
       }
