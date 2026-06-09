@@ -5,7 +5,7 @@ for a design conversation / mockups).
 
 ---
 
-You are designing the web UI for **agent-tasks**, a local-first task tracker that coordinates work
+You are designing the web UI for **relay**, a local-first task tracker that coordinates work
 across multiple AI coding agents (and me, the human). Agents and I log tasks, claim them, hand them
 off for QA, and poll for state changes. There is already a CLI and an MCP server writing to a local
 SQLite store; this UI reads the same data.

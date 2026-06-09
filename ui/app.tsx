@@ -348,7 +348,7 @@ export function App() {
         <div className="side-head">
           <div className="brand-mark">at</div>
           <div>
-            <div className="brand-name">agent-tasks</div>
+            <div className="brand-name">relay</div>
             <div className="brand-sub">local · sqlite</div>
           </div>
         </div>

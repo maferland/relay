@@ -1,11 +1,11 @@
 ---
-name: using-agent-tasks
+name: using-relay
 description: Use when coordinating work across multiple agents (or with the user) through a shared, persistent task list — logging tasks for another agent, claiming work, handing off for QA, polling for state changes, or QA'ing and sending work back. Triggers on "log a task", "assign this to an agent", "what's waiting for QA", "pick up a task", "review the queue", or any multi-agent handoff.
 ---
 
-# Coordinating work with `agent-tasks`
+# Coordinating work with `relay`
 
-`tasks` is a local, persistent task tracker shared across all your sessions and worktrees. Use it
+`relay` is a local, persistent task tracker shared across all your sessions and worktrees. Use it
 to hand work between agents asynchronously: one actor logs a task, another claims and does it,
 then hands it off for QA, and a coordinator (you or the user) checks the result.
 
@@ -17,7 +17,7 @@ a later run sees the same list.
 Set who you are once per session so your changes are attributable:
 
 ```bash
-export AGENT_TASKS_ACTOR=worker-1   # or: lead, qa, reviewer, your name…
+export RELAY_ACTOR=worker-1   # or: lead, qa, reviewer, your name…
 ```
 
 Every command also takes `--actor <name>` to override per call. Default is `unknown` — set it.
@@ -36,22 +36,22 @@ todo  ──claim──▶  doing  ──"--state review"──▶  review  ─�
 ### Logging a task for someone else
 
 ```bash
-tasks add "Fix the login redirect loop" --assignee worker-1 \
+relay add "Fix the login redirect loop" --assignee worker-1 \
   --desc "Repro: log in from /cart" \
   --plan "1. reproduce 2. patch auth/redirect.ts 3. add a test"
 ```
 
 Prints the new task (with its `id`). Defaults to the current git repo as the `project` and
 `todo` as the state. Use `--desc` for _what_ is being done and `--plan` for _how_. If a title
-contains a leading dash, put it after a `--` sentinel: `tasks add -- --weird title`.
+contains a leading dash, put it after a `--` sentinel: `relay add -- --weird title`.
 
 ### Picking up and doing work
 
 ```bash
-tasks list --state todo --assignee worker-1   # what's assigned to me
-tasks claim task-1a2b3c4d                      # → doing, assigned to me
+relay list --state todo --assignee worker-1   # what's assigned to me
+relay claim task-1a2b3c4d                      # → doing, assigned to me
 # …do the work…
-tasks update task-1a2b3c4d --state review --note "Fixed; ready for QA. Touched auth/redirect.ts"
+relay update task-1a2b3c4d --state review --note "Fixed; ready for QA. Touched auth/redirect.ts"
 ```
 
 `claim` records **where** you are working: it auto-stamps the current git `branch` and
@@ -64,13 +64,13 @@ knows exactly where to look. `claim` only picks up open work — a task already 
 Poll for work waiting on QA, then QA it:
 
 ```bash
-tasks list --state review                      # the handoff queue (current project)
-tasks list --state review --all                # across every project
-tasks show task-1a2b3c4d                        # full detail + history exchange
+relay list --state review                      # the handoff queue (current project)
+relay list --state review --all                # across every project
+relay show task-1a2b3c4d                        # full detail + history exchange
 ```
 
-- **Pass QA:** `tasks update task-1a2b3c4d --state done --note "QA passed"`
-- **Reject (send back):** `tasks update task-1a2b3c4d --state todo --note "Login works but logout 500s — see step 3"`
+- **Pass QA:** `relay update task-1a2b3c4d --state done --note "QA passed"`
+- **Reject (send back):** `relay update task-1a2b3c4d --state todo --note "Login works but logout 500s — see step 3"`
 
 You can also QA by delegating: spawn a subagent whose job is to verify a task in `review` and
 either move it to `done` or send it back with findings.
@@ -81,18 +81,18 @@ When something genuinely needs a person — a credential, an approval, a judgeme
 in whatever state the task is in:
 
 ```bash
-tasks escalate task-1a2b3c4d --note "Need staging DB creds to reproduce the flake"
+relay escalate task-1a2b3c4d --note "Need staging DB creds to reproduce the flake"
 ```
 
 This sets a `needsHuman` flag (separate from state — a task can be `doing` and still need a human).
 The human inbox is then one query:
 
 ```bash
-tasks list --needs-human          # everything waiting on a person, across states
-tasks list --mine                 # tasks assigned to you ($AGENT_TASKS_ACTOR)
+relay list --needs-human          # everything waiting on a person, across states
+relay list --mine                 # tasks assigned to you ($RELAY_ACTOR)
 ```
 
-Once the human has handled it, clear the flag: `tasks resolve task-1a2b3c4d --note "creds granted"`.
+Once the human has handled it, clear the flag: `relay resolve task-1a2b3c4d --note "creds granted"`.
 Prefer `escalate` over parking a task in `blocked` when the blocker is specifically a human — it
 stays findable regardless of state and doesn't conflate "blocked on another task" with "needs me".
 
@@ -102,7 +102,7 @@ Moving a task **backward** (e.g. `review → todo`, `review → doing`, reopenin
 `blocked` **requires `--note`**. The command fails without one. This is on purpose: the next
 actor needs to know _why_ it came back. Forward moves don't need a note (but a short one helps).
 
-The back-and-forth lives in `tasks show <id>` under `history` — every transition records who,
+The back-and-forth lives in `relay show <id>` under `history` — every transition records who,
 when, the state change, and the note. That is the conversation between the worker and QA.
 
 ## Detecting changes (polling)
@@ -110,7 +110,7 @@ when, the state change, and the note. That is the conversation between the worke
 There is no background watcher. To react to changes, poll with a filter when you check in:
 
 ```bash
-tasks list --state review --since 2026-06-08T14:00:00Z --json
+relay list --state review --since 2026-06-08T14:00:00Z --json
 ```
 
 `--since` keeps only tasks updated at/after an ISO timestamp, so a coordinator can find "what
@@ -127,16 +127,16 @@ moved since I last looked". Use `--json` for machine-readable output you can par
 
 | Command                                                                         | Purpose                                                |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `tasks add "<title>" [--desc] [--plan] [--assignee] [--project] [--state]`      | log a task                                             |
-| `tasks list [--state] [--assignee] [--project\|--all] [--since] [--json]`       | filtered list                                          |
-| `tasks show <id> [--json]`                                                      | one task + full history                                |
-| `tasks update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note                                   |
-| `tasks claim <id> [--assignee]`                                                 | assign to self, move to `doing`, stamp branch/worktree |
-| `tasks escalate <id> --note "<what you need>"`                                  | flag as needing a human                                |
-| `tasks resolve <id> [--note]`                                                   | clear the needs-human flag                             |
+| `relay add "<title>" [--desc] [--plan] [--assignee] [--project] [--state]`      | log a task                                             |
+| `relay list [--state] [--assignee] [--project\|--all] [--since] [--json]`       | filtered list                                          |
+| `relay show <id> [--json]`                                                      | one task + full history                                |
+| `relay update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note                                   |
+| `relay claim <id> [--assignee]`                                                 | assign to self, move to `doing`, stamp branch/worktree |
+| `relay escalate <id> --note "<what you need>"`                                  | flag as needing a human                                |
+| `relay resolve <id> [--note]`                                                   | clear the needs-human flag                             |
 
 Pass an empty string (`--assignee ""`) to clear a field. Identity comes from `--actor` or
-`$AGENT_TASKS_ACTOR`.
+`$RELAY_ACTOR`.
 
 Same operations are available as MCP tools (`add_task`, `list_tasks`, `get_task`, `update_task`,
 `claim_task`) for non-interactive scripting.

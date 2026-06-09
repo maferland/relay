@@ -11,7 +11,7 @@ describe('tasks CLI', () => {
   let dir: string
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-tasks-cli-'))
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'relay-cli-'))
   })
 
   afterEach(() => {
@@ -20,7 +20,7 @@ describe('tasks CLI', () => {
 
   async function run(args: string[], actor = 'tester') {
     const proc = Bun.spawn(['bun', CLI, ...args], {
-      env: { ...process.env, AGENT_TASKS_DIR: dir, AGENT_TASKS_ACTOR: actor },
+      env: { ...process.env, RELAY_DIR: dir, RELAY_ACTOR: actor },
       stdout: 'pipe',
       stderr: 'pipe',
     })

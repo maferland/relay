@@ -225,7 +225,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
 }
 
 export function createServer(store: TaskStore): McpServer {
-  const server = new McpServer({ name: 'agent-tasks', version: '0.1.0' })
+  const server = new McpServer({ name: 'relay', version: '0.1.0' })
   registerTools(server, store)
   return server
 }

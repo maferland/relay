@@ -1,11 +1,11 @@
 {
-  "name": "agent-tasks",
+  "name": "relay",
   "version": "0.1.0",
   "type": "module",
   "description": "Local-first task tracker for coordinating multi-agent work — log tasks, hand off for QA, poll for state changes",
   "license": "MIT",
   "bin": {
-    "tasks": "dist/tasks"
+    "relay": "dist/relay"
   },
   "files": [
     "dist"
