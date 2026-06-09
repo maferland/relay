@@ -105,16 +105,33 @@ actor needs to know _why_ it came back. Forward moves don't need a note (but a s
 The back-and-forth lives in `relay show <id>` under `history` — every transition records who,
 when, the state change, and the note. That is the conversation between the worker and QA.
 
-## Detecting changes (polling)
+## Reacting to changes
 
-There is no background watcher. To react to changes, poll with a filter when you check in:
+Two ways, depending on whether you want to keep working while you wait.
+
+**Wait for a handoff — `relay watch` (blocking).** Run it as a background task: you fire it,
+carry on with other work, and the harness wakes you when it returns. It returns on the first
+change (exit 0), or on timeout (exit 3).
+
+```bash
+relay watch task-1a2b3c4d --json                 # follow one task until it next changes
+relay watch task-1a2b3c4d --state review --json  # …until it reaches review (the QA handoff)
+relay watch --state review --project myrepo       # until any task enters the review queue
+```
+
+Run it with `run_in_background: true` (never `&`/`nohup` — a detached process can't wake you).
+Defaults: polls every 2s, gives up after 600s; pass `--timeout 0` to wait indefinitely or
+`--since <ISO>` to set the baseline you're comparing against.
+
+**Periodic check-in — `relay list --since` (polling).** For a coordinator that sweeps on its own
+cadence, or any agent working purely through MCP (where blocking isn't an option):
 
 ```bash
 relay list --state review --since 2026-06-08T14:00:00Z --json
 ```
 
-`--since` keeps only tasks updated at/after an ISO timestamp, so a coordinator can find "what
-moved since I last looked". Use `--json` for machine-readable output you can parse.
+`--since` keeps only tasks updated at/after an ISO timestamp, so you see "what moved since I last
+looked". Use `--json` for machine-readable output.
 
 ## When to log a task vs. just doing it
 
@@ -132,6 +149,7 @@ moved since I last looked". Use `--json` for machine-readable output you can par
 | `relay show <id> [--json]`                                                      | one task + full history                                |
 | `relay update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note                                   |
 | `relay claim <id> [--assignee]`                                                 | assign to self, move to `doing`, stamp branch/worktree |
+| `relay watch <id> [--state] [--timeout] [--json]`                               | block until a task changes (run in background)         |
 | `relay escalate <id> --note "<what you need>"`                                  | flag as needing a human                                |
 | `relay resolve <id> [--note]`                                                   | clear the needs-human flag                             |
 
