@@ -1209,6 +1209,7 @@
   font-size: var(--fs-micro);
   color: var(--text-faint);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .kcard-att {
   width: 7px;
@@ -1243,10 +1244,19 @@
   gap: 8px;
   margin-top: 10px;
 }
+.kcard-top .meta,
 .kcard-foot .meta {
   min-width: 0;
   overflow: hidden;
+}
+.kcard .meta svg {
+  flex-shrink: 0;
+}
+.kcard .meta .mono {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .kcard-grip {
   margin-left: auto;
