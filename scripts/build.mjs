@@ -13,6 +13,8 @@ function run(cmd) {
 
 rmSync(join(root, "dist"), { recursive: true, force: true });
 run("bunx tsc --noEmit");
+run("bunx tsc -p tsconfig.ui.json");
+run("bunx vite build"); // → dist/ui/index.html (single file), served by `tasks ui`
 
 // Self-contained CLI binary (bun runtime baked in). Names match install.sh's uname mapping.
 const RELEASE_TARGETS = {

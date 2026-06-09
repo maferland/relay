@@ -12,6 +12,8 @@ bun test           # run bun:test suite
 bun run typecheck  # tsc --noEmit
 bun run build      # typecheck → compile standalone `dist/tasks` binary
 bun run dev        # watch mode (runs the CLI)
+bun run build:ui   # build just the SPA → dist/ui/index.html
+bun run dev:ui      # vite dev server for the UI (needs `tasks ui` running for the API)
 verdict run        # LLM behavior tests for the using-agent-tasks skill (needs 1Password unlocked)
 ```
 
@@ -26,6 +28,7 @@ tasks claim <id> [--assignee X]
 tasks escalate <id> --note "<what you need>"   # flag: needs a human
 tasks resolve <id> [--note ..]                 # clear needs-human
 tasks list --needs-human   # the human inbox (also --mine)
+tasks ui [--me <name>] [--port N]   # local web UI (the human inbox); opens browser
 tasks mcp          # stdio MCP server over the same store
 ```
 
@@ -36,6 +39,8 @@ tasks mcp          # stdio MCP server over the same store
 - `src/store.ts` — `SqliteTaskStore` (over `bun:sqlite`) + the pure `buildTask`/`claim` logic; `update`/`claim` run in IMMEDIATE transactions
 - `src/cli.ts` — hand-rolled arg parser, subcommand dispatch, table/`--json` output
 - `src/mcp.ts` — MCP server mirroring store ops as tools
+- `src/ui-server.ts` — `tasks ui` HTTP server: REST over the store + `/api/changes` long-poll + serves the SPA; adapts store tasks to the UI shape (ISO→epoch ms, derives actors, the human = `--me`/`$AGENT_TASKS_ACTOR`)
+- `ui/` — Vite + React SPA (the Needs-you inbox, etc.). Built to a single `dist/ui/index.html` via `vite-plugin-singlefile`. Tokens/CSS are from the design handoff (`ui/styles/`), treated as final
 - `skills/using-agent-tasks/SKILL.md` — agent coordination guidance
 
 ## Constraints
@@ -45,4 +50,5 @@ tasks mcp          # stdio MCP server over the same store
 - States: `todo → doing → review → done`, plus `blocked`. `review` is the QA-handoff signal.
 - **Send-backs require a note**: any backward transition (e.g. `review → todo`) or move to `blocked` is rejected without `--note`. Enforced in `store.update`, so CLI and MCP both honor it.
 - `list` defaults to the current git project; `--all` shows every project.
+- UI status: foundation + the Needs-you inbox are live (escalated/blocked/review/mine groups, note-modal transitions, toasts, theme, `/api/changes` long-poll). Board (list + Kanban) and Task detail are next. `tasks ui` reads `dist/ui/index.html` from disk — embedding it into the standalone binary is a follow-up; for now run it from a built repo.
 - Concurrency: SQLite serializes writers (IMMEDIATE transaction + `busy_timeout`), so concurrent updates — same process or across agent processes — never drop a history entry. `busy_timeout` is set before the WAL switch so first-time concurrent construction doesn't throw "database is locked".

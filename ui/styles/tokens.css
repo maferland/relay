@@ -1,0 +1,193 @@
+/* ============================================================
+   agent-tasks · design tokens
+   Modern dev-tool aesthetic. Light + dark. Density-aware.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap');
+
+:root {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", monospace;
+
+  /* radii */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  /* type scale (px) */
+  --fs-micro: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 21px;
+  --fs-2xl: 27px;
+  --fs-3xl: 34px;
+
+  /* density (comfortable default) — overridden by [data-density] */
+  --row-py: 11px;
+  --row-px: 14px;
+  --card-pad: 16px;
+  --gap: 14px;
+  --stack: 10px;
+
+  --speed: 160ms;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-density="compact"] {
+  --row-py: 7px;
+  --row-px: 11px;
+  --card-pad: 12px;
+  --gap: 9px;
+  --stack: 7px;
+  --fs-base: 13px;
+  --fs-sm: 12px;
+}
+
+/* ---------- LIGHT ---------- */
+[data-theme="light"] {
+  --bg: oklch(0.985 0.002 265);
+  --bg-grid: oklch(0.95 0.004 265);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.975 0.003 265);
+  --surface-3: oklch(0.955 0.004 265);
+  --hover: oklch(0.965 0.004 265);
+  --border: oklch(0.91 0.005 265);
+  --border-strong: oklch(0.84 0.007 265);
+
+  --text: oklch(0.23 0.012 265);
+  --text-muted: oklch(0.50 0.012 265);
+  --text-faint: oklch(0.66 0.01 265);
+
+  --fg-solid: oklch(0.22 0.012 265);   /* primary button bg */
+  --fg-solid-text: oklch(0.99 0 0);
+  --fg-solid-hover: oklch(0.30 0.012 265);
+
+  --accent: oklch(0.55 0.16 280);
+  --accent-text: oklch(0.99 0 0);
+  --focus: oklch(0.55 0.18 280);
+
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 265 / 0.06), 0 1px 1px oklch(0.2 0.02 265 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0.2 0.02 265 / 0.08), 0 2px 4px oklch(0.2 0.02 265 / 0.05);
+  --shadow-lg: 0 16px 40px oklch(0.2 0.02 265 / 0.14), 0 4px 10px oklch(0.2 0.02 265 / 0.08);
+
+  /* state: todo / doing / review / done / blocked */
+  --st-todo-fg: oklch(0.46 0.01 265);
+  --st-todo-bg: oklch(0.95 0.004 265);
+  --st-todo-bd: oklch(0.86 0.006 265);
+
+  --st-doing-fg: oklch(0.48 0.15 250);
+  --st-doing-bg: oklch(0.95 0.04 250);
+  --st-doing-bd: oklch(0.82 0.08 250);
+
+  --st-review-fg: oklch(0.50 0.12 75);
+  --st-review-bg: oklch(0.95 0.05 80);
+  --st-review-bd: oklch(0.83 0.09 80);
+
+  --st-done-fg: oklch(0.48 0.13 152);
+  --st-done-bg: oklch(0.95 0.05 152);
+  --st-done-bd: oklch(0.82 0.09 152);
+
+  --st-blocked-fg: oklch(0.52 0.20 25);
+  --st-blocked-bg: oklch(0.95 0.05 25);
+  --st-blocked-bd: oklch(0.80 0.13 25);
+  --st-blocked-solid: oklch(0.55 0.21 25);
+
+  --urgent-glow: oklch(0.55 0.21 25 / 0.16);
+}
+
+/* ---------- DARK ---------- */
+[data-theme="dark"] {
+  --bg: oklch(0.165 0.006 265);
+  --bg-grid: oklch(0.205 0.008 265);
+  --surface: oklch(0.205 0.008 265);
+  --surface-2: oklch(0.235 0.009 265);
+  --surface-3: oklch(0.265 0.01 265);
+  --hover: oklch(0.255 0.01 265);
+  --border: oklch(0.29 0.011 265);
+  --border-strong: oklch(0.37 0.013 265);
+
+  --text: oklch(0.95 0.004 265);
+  --text-muted: oklch(0.70 0.011 265);
+  --text-faint: oklch(0.52 0.012 265);
+
+  --fg-solid: oklch(0.95 0.004 265);
+  --fg-solid-text: oklch(0.20 0.01 265);
+  --fg-solid-hover: oklch(0.86 0.006 265);
+
+  --accent: oklch(0.70 0.15 280);
+  --accent-text: oklch(0.16 0.01 280);
+  --focus: oklch(0.72 0.16 280);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.30);
+  --shadow-md: 0 6px 16px oklch(0 0 0 / 0.40), 0 2px 4px oklch(0 0 0 / 0.30);
+  --shadow-lg: 0 20px 48px oklch(0 0 0 / 0.55), 0 6px 14px oklch(0 0 0 / 0.40);
+
+  --st-todo-fg: oklch(0.72 0.012 265);
+  --st-todo-bg: oklch(0.27 0.008 265);
+  --st-todo-bd: oklch(0.36 0.01 265);
+
+  --st-doing-fg: oklch(0.78 0.12 250);
+  --st-doing-bg: oklch(0.30 0.07 250);
+  --st-doing-bd: oklch(0.45 0.10 250);
+
+  --st-review-fg: oklch(0.82 0.12 82);
+  --st-review-bg: oklch(0.32 0.07 75);
+  --st-review-bd: oklch(0.48 0.10 78);
+
+  --st-done-fg: oklch(0.78 0.13 155);
+  --st-done-bg: oklch(0.30 0.07 155);
+  --st-done-bd: oklch(0.45 0.10 155);
+
+  --st-blocked-fg: oklch(0.78 0.16 28);
+  --st-blocked-bg: oklch(0.34 0.11 28);
+  --st-blocked-bd: oklch(0.52 0.16 28);
+  --st-blocked-solid: oklch(0.62 0.20 28);
+
+  --urgent-glow: oklch(0.62 0.20 28 / 0.22);
+}
+
+/* accent overrides driven by tweak */
+[data-accent="blue"]   { --accent: oklch(0.55 0.16 250); --focus: oklch(0.58 0.17 250); }
+[data-accent="green"]  { --accent: oklch(0.55 0.15 152); --focus: oklch(0.56 0.15 152); }
+[data-accent="amber"]  { --accent: oklch(0.62 0.15 70);  --focus: oklch(0.64 0.15 70); }
+[data-theme="dark"][data-accent="blue"]  { --accent: oklch(0.70 0.14 250); }
+[data-theme="dark"][data-accent="green"] { --accent: oklch(0.72 0.14 152); }
+[data-theme="dark"][data-accent="amber"] { --accent: oklch(0.78 0.13 75); }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-base);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv01", "cv03", "ss01";
+}
+.mono { font-family: var(--font-mono); font-feature-settings: "zero", "ss01"; }
+
+::selection { background: var(--accent); color: var(--accent-text); }
+
+/* scrollbars */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--text-faint); background-clip: content-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-xs); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-soft { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes rowflash {
+  0% { background: var(--urgent-glow); }
+  100% { background: transparent; }
+}
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes toastin { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }

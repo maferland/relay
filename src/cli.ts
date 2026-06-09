@@ -1,10 +1,10 @@
 import { buildTask, SqliteTaskStore } from "./store.js";
 import { isState, STATES, type State, type Task, type TaskChanges } from "./types.js";
-import { detectProject, gitContext, resolveActor } from "./util.js";
+import { detectProject, gitContext, openBrowser, resolveActor } from "./util.js";
 
 const BOOL_FLAGS = new Set(["all", "json", "needs-human", "mine", "help"]);
 const VALUE_FLAGS = new Set([
-  "desc", "plan", "assignee", "project", "state", "note", "title", "branch", "worktree", "actor", "since",
+  "desc", "plan", "assignee", "project", "state", "note", "title", "branch", "worktree", "actor", "since", "me", "port",
 ]);
 
 interface ParsedArgs {
@@ -236,6 +236,22 @@ async function mcpCommand(): Promise<void> {
   await createServer(new SqliteTaskStore()).connect(new StdioServerTransport());
 }
 
+async function uiCommand(args: ParsedArgs): Promise<void> {
+  const { createUiServer, loadUiHtml } = await import("./ui-server.js");
+  const me = val(args.flags.me) ?? resolveActor(val(args.flags.actor));
+  const port = args.flags.port ? parseInt(val(args.flags.port)!, 10) : undefined;
+  let html: string;
+  try {
+    html = loadUiHtml();
+  } catch (e) {
+    die(e instanceof Error ? e.message : String(e));
+  }
+  const server = createUiServer(new SqliteTaskStore(), { me, port, html });
+  const url = `http://localhost:${server.port}`;
+  process.stderr.write(`agent-tasks UI on ${url}  (you = ${me})\n`);
+  openBrowser(url);
+}
+
 const HELP =
   "tasks — local-first task tracker for multi-agent coordination\n\n" +
   "Commands:\n" +
@@ -246,6 +262,7 @@ const HELP =
   "  tasks claim <id> [--assignee X]\n" +
   '  tasks escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
   "  tasks resolve <id> [--note ..]                 (clear the needs-human flag)\n" +
+  "  tasks ui [--me <name>] [--port N]   (local web UI — the human inbox)\n" +
   "  tasks mcp   (stdio MCP server over the same store)\n\n" +
   `States: ${STATES.join(" → ")} (review = needs QA)\n` +
   "Human inbox: tasks list --needs-human   (also --mine for your assigned tasks)\n" +
@@ -276,6 +293,8 @@ async function main(): Promise<void> {
       return claimCommand(args);
     case "mcp":
       return mcpCommand();
+    case "ui":
+      return uiCommand(args);
     default:
       process.stderr.write(HELP);
       process.exit(args.command ? 2 : 0);
