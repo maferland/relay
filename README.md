@@ -13,11 +13,12 @@ different windows (and you) all see the same queue.
 ## Install
 
 ```bash
-git clone https://github.com/maferland/agent-tasks
-cd agent-tasks && bun install && bun run build
-# put the compiled binary on your PATH
-cp dist/tasks ~/.local/bin/tasks
+curl -fsSL https://raw.githubusercontent.com/maferland/agent-tasks/main/install.sh | bash
 ```
+
+Builds from source (needs [Bun](https://bun.sh)) and installs the `tasks` binary to
+`~/.local/bin`, the `using-agent-tasks` skill to `~/.claude/skills`, and registers the MCP server
+with Claude Code. Re-run any time to update. Or clone and `./install.sh` from the checkout.
 
 ## Usage
 
