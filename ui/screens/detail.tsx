@@ -318,6 +318,33 @@ export function Detail({
                   </span>
                 </MetaRow>
               ) : null}
+              {task.links?.length ? (
+                <MetaRow icon="branch" k="links">
+                  <span className="card-labels">
+                    {task.links.map((l) => {
+                      const text = l.lastStatus
+                        ? `${l.ref} · ${l.lastStatus}`
+                        : l.ref
+                      return l.url ? (
+                        <a
+                          key={l.ref}
+                          className="label-chip"
+                          href={l.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {text}
+                        </a>
+                      ) : (
+                        <span key={l.ref} className="label-chip">
+                          {text}
+                        </span>
+                      )
+                    })}
+                  </span>
+                </MetaRow>
+              ) : null}
               {task.branch ? (
                 <MetaRow icon="branch" k="branch">
                   <span className="mono" style={mono}>
