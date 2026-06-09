@@ -325,4 +325,93 @@ describe('tasks CLI', () => {
     expect(exitCode).toBe(0)
     expect(stderr).toMatch(/local-first task tracker/)
   })
+
+  describe('watch', () => {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+    // Start the CLI without awaiting, so the caller can mutate the store mid-watch.
+    function spawnCli(args: string[], actor = 'tester') {
+      const proc = Bun.spawn(['bun', CLI, ...args], {
+        env: { ...process.env, RELAY_DIR: dir, RELAY_ACTOR: actor },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      return {
+        proc,
+        async result() {
+          const [stdout, exitCode] = await Promise.all([
+            new Response(proc.stdout).text(),
+            proc.exited,
+          ])
+          return { stdout, exitCode }
+        },
+      }
+    }
+
+    it('blocks until the task changes, then returns it with exit 0', async () => {
+      const { id } = await addTask('watch me', ['--assignee', 'w1'])
+      const watch = spawnCli([
+        'watch',
+        id,
+        '--interval',
+        '0.2',
+        '--timeout',
+        '10',
+        '--json',
+      ])
+      await sleep(500)
+      await run(['update', id, '--note', 'ping'], 'w1')
+      const { stdout, exitCode } = await watch.result()
+      expect(exitCode).toBe(0)
+      const task = JSON.parse(stdout) as Task
+      expect(task.history.at(-1)).toMatchObject({ note: 'ping' })
+    })
+
+    it('times out with exit 3 when nothing changes', async () => {
+      const { id } = await addTask('quiet')
+      const { exitCode, stderr } = await run([
+        'watch',
+        id,
+        '--interval',
+        '0.2',
+        '--timeout',
+        '0.6',
+      ])
+      expect(exitCode).toBe(3)
+      expect(stderr).toMatch(/timed out/i)
+    })
+
+    it('errors with exit 2 on a missing id', async () => {
+      const { exitCode, stderr } = await run([
+        'watch',
+        'task-nope',
+        '--timeout',
+        '1',
+      ])
+      expect(exitCode).toBe(2)
+      expect(stderr).toMatch(/not found/)
+    })
+
+    it('--state blocks until a task enters that queue', async () => {
+      const { id } = await addTask('q', ['--assignee', 'w1'])
+      const watch = spawnCli([
+        'watch',
+        '--state',
+        'review',
+        '--project',
+        'demo',
+        '--interval',
+        '0.2',
+        '--timeout',
+        '10',
+        '--json',
+      ])
+      await sleep(500)
+      await run(['claim', id], 'w1')
+      await run(['update', id, '--state', 'review', '--note', 'ready'], 'w1')
+      const { stdout, exitCode } = await watch.result()
+      expect(exitCode).toBe(0)
+      expect((JSON.parse(stdout) as Task[]).map((t) => t.id)).toContain(id)
+    })
+  })
 })

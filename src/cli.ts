@@ -23,7 +23,11 @@ const VALUE_FLAGS = new Set([
   'since',
   'me',
   'port',
+  'interval',
+  'timeout',
 ])
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 interface ParsedArgs {
   command: string
@@ -285,6 +289,84 @@ async function resolveCommand(args: ParsedArgs): Promise<void> {
   printTask(task, !!args.flags.json)
 }
 
+function printChange(task: Task, json: boolean): void {
+  if (json) {
+    process.stdout.write(JSON.stringify(task, null, 2) + '\n')
+    return
+  }
+  printTask(task, false)
+  const e = task.history[task.history.length - 1]
+  if (e) {
+    const transition =
+      e.from || e.to ? `${e.from ?? '·'} → ${e.to ?? '·'}` : 'note'
+    process.stdout.write(
+      `  changed: ${transition}${e.note ? '  ' + e.note : ''}  (${e.actor ?? '—'})\n`
+    )
+  }
+}
+
+// Block until a task changes, then return. Run with run_in_background so the
+// agent is woken on the change. Exit 0 on change, 3 on timeout, 2 on bad args.
+async function watchCommand(args: ParsedArgs): Promise<void> {
+  const store = new SqliteTaskStore()
+  const json = !!args.flags.json
+  const [id] = args.positional
+  const interval = Math.max(
+    0.2,
+    args.flags.interval ? parseFloat(val(args.flags.interval)!) : 2
+  )
+  const timeout = args.flags.timeout
+    ? parseFloat(val(args.flags.timeout)!)
+    : 600
+  const deadline = timeout > 0 ? Date.now() + timeout * 1000 : Infinity
+
+  if (id) {
+    // Follow one task until its next change (optionally only when it reaches --state).
+    const until = requireState(val(args.flags.state))
+    const start = await store.get(id).catch((e: Error) => die(e.message))
+    if (!start) die(`Task "${id}" not found.`, 2)
+    const baseline = val(args.flags.since) ?? start.updatedAt
+    for (;;) {
+      const task = await store.get(id)
+      if (
+        task &&
+        task.updatedAt > baseline &&
+        (!until || task.state === until)
+      ) {
+        printChange(task, json)
+        return
+      }
+      if (Date.now() >= deadline)
+        die(`Timed out after ${timeout}s with no change to ${id}.`, 3)
+      await sleep(interval * 1000)
+    }
+  }
+
+  // Queue mode: block until a task enters --state (current project unless --all).
+  const state = requireState(val(args.flags.state))
+  if (!state)
+    die(
+      'usage: relay watch <id> | relay watch --state <state> [--project P|--all]',
+      2
+    )
+  const scope = args.flags.all
+    ? undefined
+    : (val(args.flags.project) ?? detectProject())
+  const baseline = val(args.flags.since) ?? new Date().toISOString()
+  for (;;) {
+    const entered = (await store.list({ state, project: scope })).filter(
+      (t) => t.updatedAt > baseline
+    )
+    if (entered.length) {
+      printList(entered, json)
+      return
+    }
+    if (Date.now() >= deadline)
+      die(`Timed out after ${timeout}s; nothing entered ${state}.`, 3)
+    await sleep(interval * 1000)
+  }
+}
+
 async function mcpCommand(): Promise<void> {
   const { StdioServerTransport } =
     await import('@modelcontextprotocol/sdk/server/stdio.js')
@@ -317,6 +399,8 @@ const HELP =
   '  relay show <id> [--json]\n' +
   '  relay update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
   '  relay claim <id> [--assignee X]\n' +
+  '  relay watch <id> [--state S] [--timeout sec]   (block until it changes; run in background)\n' +
+  '  relay watch --state review [--project P|--all]  (block until a task enters that queue)\n' +
   '  relay escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
   '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
   '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
@@ -348,6 +432,8 @@ async function main(): Promise<void> {
       return updateCommand(args)
     case 'claim':
       return claimCommand(args)
+    case 'watch':
+      return watchCommand(args)
     case 'mcp':
       return mcpCommand()
     case 'ui':
