@@ -716,6 +716,26 @@
   border-radius: var(--r-md);
   padding: 9px 12px;
 }
+.tl-note-body.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tl-note-toggle {
+  margin-top: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent);
+}
+.tl-note-toggle:hover {
+  text-decoration: underline;
+}
 .comment-composer {
   display: flex;
   flex-direction: column;
