@@ -129,7 +129,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
     {
       title: 'Update a task',
       description:
-        "Change fields and/or state and append a note to the history. To hand off for QA set state='review'. To reject after QA set state='doing' with a note. Pass an empty string to clear assignee/description.",
+        "Change fields and/or state and append a note to the history. To hand off for QA set state='review'. To reject after QA set state='doing' with a note. A task that has been in review cannot reach state='done' unless humanTested is true (pass humanTested in the same call). Pass an empty string to clear assignee/description.",
       inputSchema: z.object({
         id: z.string(),
         state: StateEnum.optional(),
@@ -145,6 +145,14 @@ export function registerTools(server: McpServer, store: TaskStore): void {
           .describe('Replace the whole set'),
         addLabels: z.array(z.string()).optional(),
         removeLabels: z.array(z.string()).optional(),
+        humanReviewed: z
+          .boolean()
+          .optional()
+          .describe('Set/clear the human-reviewed checkpoint'),
+        humanTested: z
+          .boolean()
+          .optional()
+          .describe('Set/clear the human-tested checkpoint; required for done'),
         note: z.string().optional(),
         actor: z.string().optional(),
       }),

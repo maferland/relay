@@ -31,6 +31,10 @@ const BOOL_FLAGS = new Set([
   'help',
   'remote',
   'install',
+  'reviewed',
+  'tested',
+  'clear-reviewed',
+  'clear-tested',
 ])
 const VALUE_FLAGS = new Set([
   'desc',
@@ -150,9 +154,14 @@ function printTask(task: Task, json: boolean): void {
   const labels = task.labels?.length
     ? `\n  labels: ${task.labels.join(', ')}`
     : ''
+  const checked = [
+    task.humanReviewed ? 'reviewed' : null,
+    task.humanTested ? 'tested' : null,
+  ].filter(Boolean)
+  const checks = checked.length ? `\n  human: ${checked.join(', ')}` : ''
   process.stdout.write(
     `${task.id}  [${task.state}]${flag}  ${task.title}\n` +
-      `  project: ${task.project}   assignee: ${task.assignee ?? '—'}   updated: ${short(task.updatedAt)}${where}${labels}\n`
+      `  project: ${task.project}   assignee: ${task.assignee ?? '—'}   updated: ${short(task.updatedAt)}${where}${labels}${checks}\n`
   )
 }
 
@@ -285,6 +294,10 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
     changes.addLabels = csv(val(args.flags['add-label']))
   if (args.flags['rm-label'] !== undefined)
     changes.removeLabels = csv(val(args.flags['rm-label']))
+  if (args.flags.reviewed) changes.humanReviewed = true
+  if (args.flags['clear-reviewed']) changes.humanReviewed = false
+  if (args.flags.tested) changes.humanTested = true
+  if (args.flags['clear-tested']) changes.humanTested = false
 
   const task = await new SqliteTaskStore()
     .update(id, changes, {
@@ -566,6 +579,7 @@ const HELP =
   '  relay list [--state S] [--assignee X] [--project P|--all] [--since ISO] [--json]\n' +
   '  relay show <id> [--json]\n' +
   '  relay update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
+  '  relay update <id> [--reviewed|--clear-reviewed] [--tested|--clear-tested]   (human checkpoints; reviewed tasks need --tested for done)\n' +
   '  relay claim <id> [--assignee X]\n' +
   '  relay comment <id> "<message>"   (leave a note on the thread, no state change)\n' +
   '  relay watch <id> [--state S] [--timeout sec]   (block until it changes; run in background)\n' +
