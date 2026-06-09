@@ -166,6 +166,28 @@ export function registerTools(server: McpServer, store: TaskStore): void {
   )
 
   server.registerTool(
+    'comment_task',
+    {
+      title: 'Comment on a task',
+      description:
+        'Leave a note on the task thread without changing its state. Use it for back-and-forth between agents (questions, context, answers).',
+      inputSchema: z.object({
+        id: z.string(),
+        note: z.string().describe('The message to add to the thread'),
+        actor: z.string().optional(),
+      }),
+    },
+    async ({ id, note, actor }): Promise<CallToolResult> => {
+      try {
+        const task = await store.update(id, {}, { actor, note })
+        return ok(`Commented on ${summarize(task)}`)
+      } catch (e) {
+        return err(e)
+      }
+    }
+  )
+
+  server.registerTool(
     'resolve_task',
     {
       title: 'Clear needs-human',

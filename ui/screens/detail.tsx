@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, type ReactNode, useState } from 'react'
 import {
   Avatar,
   Button,
@@ -137,6 +137,36 @@ function Timeline({
   )
 }
 
+function CommentComposer({ onSubmit }: { onSubmit: (note: string) => void }) {
+  const [text, setText] = useState('')
+  const send = () => {
+    const note = text.trim()
+    if (!note) return
+    onSubmit(note)
+    setText('')
+  }
+  return (
+    <div className="comment-composer">
+      <textarea
+        value={text}
+        placeholder="Leave a note for the next agent…"
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') send()
+        }}
+      />
+      <Button
+        variant="primary"
+        icon="send"
+        disabled={!text.trim()}
+        onClick={send}
+      >
+        Comment
+      </Button>
+    </div>
+  )
+}
+
 function MetaRow({
   icon,
   k,
@@ -163,6 +193,7 @@ interface DetailProps {
   now: number
   onBack: () => void
   onAction: (task: UiTask, t: Transition) => void
+  onComment: (task: UiTask, note: string) => void
 }
 
 export function Detail({
@@ -172,6 +203,7 @@ export function Detail({
   now,
   onBack,
   onAction,
+  onComment,
 }: DetailProps) {
   if (!task) return null
   const trans = transitionsFor(task.state)
@@ -245,6 +277,7 @@ export function Detail({
           <div className="dsection">
             <h4>History · worker ↔ QA</h4>
             <Timeline history={task.history} actors={actors} now={now} />
+            <CommentComposer onSubmit={(note) => onComment(task, note)} />
           </div>
         </div>
 

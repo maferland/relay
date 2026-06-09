@@ -289,6 +289,17 @@ async function resolveCommand(args: ParsedArgs): Promise<void> {
   printTask(task, !!args.flags.json)
 }
 
+async function commentCommand(args: ParsedArgs): Promise<void> {
+  const [id, ...rest] = args.positional
+  const note = (val(args.flags.note) ?? rest.join(' ')).trim()
+  if (!id || !note)
+    die('usage: relay comment <id> "<message>"  (or --note "<message>")', 2)
+  const task = await new SqliteTaskStore()
+    .update(id, {}, { actor: resolveActor(val(args.flags.actor)), note })
+    .catch((e: Error) => die(e.message))
+  printTask(task, !!args.flags.json)
+}
+
 function printChange(task: Task, json: boolean): void {
   if (json) {
     process.stdout.write(JSON.stringify(task, null, 2) + '\n')
@@ -399,6 +410,7 @@ const HELP =
   '  relay show <id> [--json]\n' +
   '  relay update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
   '  relay claim <id> [--assignee X]\n' +
+  '  relay comment <id> "<message>"   (leave a note on the thread, no state change)\n' +
   '  relay watch <id> [--state S] [--timeout sec]   (block until it changes; run in background)\n' +
   '  relay watch --state review [--project P|--all]  (block until a task enters that queue)\n' +
   '  relay escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
@@ -432,6 +444,8 @@ async function main(): Promise<void> {
       return updateCommand(args)
     case 'claim':
       return claimCommand(args)
+    case 'comment':
+      return commentCommand(args)
     case 'watch':
       return watchCommand(args)
     case 'mcp':
