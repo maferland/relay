@@ -3,7 +3,7 @@ import { execFileSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { detectProject, gitContext } from './util.js'
+import { detectProject, gitContext, resolveActor } from './util.js'
 
 function git(args: string[], cwd: string): void {
   execFileSync('git', args, { cwd, stdio: 'ignore' })
@@ -57,5 +57,25 @@ describe('git project detection', () => {
     // The worktree dir is named "feat" but the project must stay "myrepo".
     expect(detectProject(wt)).toBe('myrepo')
     expect(gitContext(wt).branch).toBe('feat')
+  })
+})
+
+describe('resolveActor', () => {
+  const saved = { actor: process.env.RELAY_ACTOR, user: process.env.USER }
+  afterEach(() => {
+    process.env.RELAY_ACTOR = saved.actor
+    process.env.USER = saved.user
+  })
+
+  it('prefers an explicit flag, then RELAY_ACTOR, then $USER, then unknown', () => {
+    process.env.RELAY_ACTOR = 'env-actor'
+    process.env.USER = 'login-user'
+    expect(resolveActor('flag-actor')).toBe('flag-actor')
+
+    delete process.env.RELAY_ACTOR
+    expect(resolveActor()).toBe('login-user')
+
+    delete process.env.USER
+    expect(resolveActor()).toBe('unknown')
   })
 })
