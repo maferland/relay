@@ -112,6 +112,66 @@ function NoteModal({
   )
 }
 
+function ResolveModal({
+  task,
+  onCancel,
+  onConfirm,
+}: {
+  task: UiTask
+  onCancel: () => void
+  onConfirm: (note: string) => void
+}) {
+  const [note, setNote] = useState('')
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    ref.current?.focus()
+  }, [])
+  return (
+    <div
+      className="modal-scrim"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCancel()
+      }}
+    >
+      <div className="modal" role="dialog" aria-modal="true">
+        <div className="modal-head">
+          <div className="m-kicker">
+            <Icon name="check" size={14} /> Hand back to agents
+          </div>
+          <h3>Resolve escalation</h3>
+          <p>{task.title}</p>
+        </div>
+        <div className="modal-body">
+          <div className="field-label">Reply to the agent (optional)</div>
+          <textarea
+            ref={ref}
+            className="note-input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Answer the question or say what you decided — the agent picks the task back up with this note…"
+          />
+          <div className="note-hint">
+            <Icon name="check" size={12} />
+            Clears the needs-human flag and records your reply in the history.
+          </div>
+        </div>
+        <div className="modal-foot">
+          <Button variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            variant="accent"
+            icon="check"
+            onClick={() => onConfirm(note.trim())}
+          >
+            Resolve
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ToastHost({
   toasts,
   onOpen,
@@ -170,6 +230,7 @@ export function App() {
     task: UiTask
     transition: Transition
   } | null>(null)
+  const [resolveTask, setResolveTask] = useState<UiTask | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(Date.now())
@@ -310,13 +371,18 @@ export function App() {
     }
   }
 
-  async function onResolve(task: UiTask) {
+  function onResolve(task: UiTask) {
+    setResolveTask(task)
+  }
+
+  async function doResolve(task: UiTask, note: string) {
+    setResolveTask(null)
     try {
-      patchTask(await api.resolve(task.id, ''))
+      patchTask(await api.resolve(task.id, note))
       pushToast({
         kind: 'success',
         icon: 'check',
-        title: 'Resolved',
+        title: note ? 'Resolved & replied' : 'Resolved',
         desc: task.title,
         taskId: task.id,
       })
@@ -531,6 +597,13 @@ export function App() {
           onConfirm={(note) =>
             applyTransition(modal.task, modal.transition, note)
           }
+        />
+      )}
+      {resolveTask && (
+        <ResolveModal
+          task={resolveTask}
+          onCancel={() => setResolveTask(null)}
+          onConfirm={(note) => doResolve(resolveTask, note)}
         />
       )}
       <ToastHost toasts={toasts} onOpen={openTask} onDismiss={dismissToast} />
