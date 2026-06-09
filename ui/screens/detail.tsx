@@ -210,6 +210,7 @@ interface DetailProps {
   onBack: () => void
   onAction: (task: UiTask, t: Transition) => void
   onComment: (task: UiTask, note: string) => void
+  onResolve: (task: UiTask) => void
 }
 
 export function Detail({
@@ -220,6 +221,7 @@ export function Detail({
   onBack,
   onAction,
   onComment,
+  onResolve,
 }: DetailProps) {
   if (!task) return null
   const trans = transitionsFor(task.state)
@@ -300,6 +302,16 @@ export function Detail({
         <aside>
           <div className="drail">
             <div className="drail-actions">
+              {task.needsHuman && (
+                <Button
+                  variant="accent"
+                  size="md"
+                  icon="check"
+                  onClick={() => onResolve(task)}
+                >
+                  Resolve (hand back to agents)
+                </Button>
+              )}
               {trans.map((t, i) => (
                 <Button
                   key={t.to + String(i)}
