@@ -3,6 +3,8 @@ import { Avatar, Button, Icon, StateBadge } from "./components/ui.tsx";
 import * as api from "./lib/api.ts";
 import { STATE_META } from "./lib/transitions.ts";
 import type { Actor, Snapshot, Transition, UiTask } from "./lib/types.ts";
+import { Board } from "./screens/board.tsx";
+import { Detail } from "./screens/detail.tsx";
 import { Inbox } from "./screens/inbox.tsx";
 
 type View = "inbox" | "board" | "detail";
@@ -184,15 +186,18 @@ export function App() {
     (async () => {
       while (!stop) {
         try {
-          setSyncing(true);
           const res = await api.pollChanges(lastSyncRef.current, ctrl.signal);
-          if (res.tasks.length) await refresh();
-          else setLastSync(Date.now());
+          if (stop) break;
+          if (res.tasks.length) {
+            setSyncing(true); // flash only while actually applying a change
+            await refresh();
+            setSyncing(false);
+          } else {
+            setLastSync(Date.now()); // heartbeat: keep "synced Ns ago" honest
+          }
         } catch {
           if (stop) break;
           await new Promise((r) => setTimeout(r, 2000));
-        } finally {
-          setSyncing(false);
         }
       }
     })();
@@ -355,19 +360,26 @@ export function App() {
               onResolve={onResolve}
             />
           )}
-          {(view === "board" || view === "detail") && (
-            <div className="page">
-              <div className="empty">
-                <div className="e-ic">
-                  <Icon name="board" size={26} />
-                </div>
-                <h3>{view === "detail" ? `Task ${openId} detail` : "Board"} — coming next</h3>
-                <p>This slice ships the live Needs-you inbox. The Board (list + Kanban) and Task detail land next.</p>
-                <Button variant="default" onClick={() => goView("inbox")} icon="inbox">
-                  Back to Needs you
-                </Button>
-              </div>
-            </div>
+          {view === "board" && (
+            <Board
+              tasks={tasks}
+              actors={actors}
+              me={me}
+              projects={projects}
+              now={now}
+              onOpen={openTask}
+              onAction={onAction}
+            />
+          )}
+          {view === "detail" && (
+            <Detail
+              task={tasks.find((t) => t.id === openId)}
+              actors={actors}
+              me={me}
+              now={now}
+              onBack={() => goView("board")}
+              onAction={onAction}
+            />
           )}
         </div>
       </main>

@@ -1,4 +1,3 @@
-import fs from "fs";
 import type { SqliteTaskStore } from "./store.js";
 import type { State, Task } from "./types.js";
 import { isState } from "./types.js";
@@ -143,11 +142,9 @@ export function createUiServer(store: SqliteTaskStore, opts: UiServerOptions) {
   return server;
 }
 
+// build-generated asset (vite → dist/ui); Bun inlines it into the --compile binary as raw text.
+import bundledHtml from "../dist/ui/index.html" with { type: "text" };
+
 export function loadUiHtml(): string {
-  const file = new URL("../dist/ui/index.html", import.meta.url);
-  try {
-    return fs.readFileSync(file, "utf-8");
-  } catch {
-    throw new Error("UI not built. Run `bun run build` (or `bunx vite build`) first.");
-  }
+  return bundledHtml as unknown as string;
 }
