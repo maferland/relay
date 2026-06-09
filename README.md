@@ -90,15 +90,18 @@ Exposes `add_task`, `list_tasks`, `get_task`, `update_task`, `claim_task`, `comm
 ### Tab completion
 
 `relay completion <bash|zsh|fish>` prints a completion script for subcommands, flags, and state
-values. Load it from your shell config:
+values. Add `--install` to write it to the shell's standard location instead of printing:
 
 ```bash
-# zsh — into a dir on your $fpath, e.g.
-relay completion zsh > ~/.zfunc/_relay
-# bash
-relay completion bash > ~/.local/share/bash-completion/completions/relay
-# fish
-relay completion fish > ~/.config/fish/completions/relay.fish
+relay completion fish --install   # ~/.config/fish/completions/relay.fish — auto-loaded
+relay completion bash --install   # ~/.local/share/bash-completion/completions/relay — auto-loaded
+relay completion zsh --install    # ~/.local/share/zsh/site-functions/_relay (prints the fpath line to add)
+```
+
+Or print and redirect it yourself:
+
+```bash
+relay completion zsh > ~/.zfunc/_relay   # into a dir on your $fpath
 ```
 
 ## Requirements
