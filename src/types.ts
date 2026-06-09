@@ -40,6 +40,7 @@ export interface Task {
   branch?: string // git branch the work happens on
   worktree?: string // worktree dir the work happens in
   needsHuman?: boolean // escalated: waiting on a human, orthogonal to state
+  labels?: string[] // free-form tags, orthogonal to state (e.g. awaiting-code-review)
   assignee?: string
   createdBy?: string
   createdAt: string
@@ -55,4 +56,7 @@ export interface TaskChanges {
   plan?: string
   branch?: string
   worktree?: string
+  labels?: string[] // replace the whole set
+  addLabels?: string[] // add without clobbering
+  removeLabels?: string[] // remove without clobbering
 }

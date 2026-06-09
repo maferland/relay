@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Avatar, Icon } from '../components/ui.tsx'
+import { Avatar, Icon, LabelChips } from '../components/ui.tsx'
 import {
   attentionNote,
   STATE_META,
@@ -56,6 +56,11 @@ function KanbanCard({
         {needsMe && <span className="kcard-att" title="needs you" />}
       </div>
       <div className="kcard-title">{task.title}</div>
+      {task.labels?.length ? (
+        <div className="card-labels">
+          <LabelChips labels={task.labels} />
+        </div>
+      ) : null}
       {note && <div className="kcard-reason">{note.note}</div>}
       <div className="kcard-foot">
         {task.branch ? (
