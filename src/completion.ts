@@ -15,6 +15,7 @@ const COMMANDS: [string, string][] = [
   ['escalate', 'flag as needing a human'],
   ['resolve', 'clear the needs-human flag'],
   ['ui', 'open the local web UI'],
+  ['config', 'view or set your operator identity'],
   ['mcp', 'run the stdio MCP server'],
   ['upgrade', 'update relay to the latest release'],
   ['completion', 'print a shell completion script'],
