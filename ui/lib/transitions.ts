@@ -7,6 +7,18 @@ export function lastNote(task: UiTask): UiEvent | null {
   return null
 }
 
+// Why a task needs attention: prefer the note from the transition into its
+// current state, so a later plain comment can't masquerade as the reason.
+export function attentionNote(task: UiTask): UiEvent | null {
+  if (task.state === 'review' || task.state === 'blocked') {
+    for (let i = task.history.length - 1; i >= 0; i--) {
+      const e = task.history[i]
+      if (e.to === task.state && e.note) return e
+    }
+  }
+  return lastNote(task)
+}
+
 export const STATE_META: Record<
   State,
   { label: string; v: State; order: number }

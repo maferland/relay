@@ -42,6 +42,15 @@ export async function resolve(id: string, note: string): Promise<UiTask> {
   return (await jsonOrThrow(res)) as UiTask
 }
 
+export async function comment(id: string, note: string): Promise<UiTask> {
+  const res = await fetch(`/api/tasks/${encodeURIComponent(id)}/comment`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ note }),
+  })
+  return (await jsonOrThrow(res)) as UiTask
+}
+
 // Long-poll: resolves when something changed at/after `since`, or after the server's timeout.
 export async function pollChanges(
   since: number,

@@ -326,6 +326,31 @@ describe('tasks CLI', () => {
     expect(stderr).toMatch(/local-first task tracker/)
   })
 
+  describe('comment', () => {
+    it('appends a note-only event without changing state', async () => {
+      const { id } = await addTask('discuss', ['--assignee', 'w1'])
+      const after = JSON.parse(
+        (await run(['comment', id, 'what did you mean by X?', '--json'], 'qa'))
+          .stdout
+      ) as Task
+      expect(after.state).toBe('todo')
+      const last = after.history.at(-1)!
+      expect(last).toMatchObject({
+        actor: 'qa',
+        note: 'what did you mean by X?',
+      })
+      expect(last.from).toBeUndefined()
+      expect(last.to).toBeUndefined()
+    })
+
+    it('errors with exit 2 when the message is empty', async () => {
+      const { id } = await addTask('x')
+      const { exitCode, stderr } = await run(['comment', id])
+      expect(exitCode).toBe(2)
+      expect(stderr).toMatch(/usage: relay comment/)
+    })
+  })
+
   describe('watch', () => {
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 

@@ -330,6 +330,26 @@ export function App() {
     }
   }
 
+  async function onComment(task: UiTask, note: string) {
+    try {
+      patchTask(await api.comment(task.id, note))
+      pushToast({
+        kind: 'success',
+        icon: 'send',
+        title: 'Comment added',
+        desc: task.title,
+        taskId: task.id,
+      })
+    } catch (e) {
+      pushToast({
+        kind: 'block',
+        icon: 'alert',
+        title: "Couldn't comment",
+        desc: e instanceof Error ? e.message : String(e),
+      })
+    }
+  }
+
   const isNeedsYou = (t: UiTask) =>
     t.needsHuman ||
     t.state === 'blocked' ||
@@ -496,6 +516,7 @@ export function App() {
               now={now}
               onBack={() => goView('board')}
               onAction={onAction}
+              onComment={onComment}
             />
           )}
         </div>
