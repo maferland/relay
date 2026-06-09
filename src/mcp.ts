@@ -42,6 +42,10 @@ export function registerTools(server: McpServer, store: TaskStore): void {
         branch: z.string().optional(),
         worktree: z.string().optional(),
         state: StateEnum.optional(),
+        labels: z
+          .array(z.string())
+          .optional()
+          .describe('Free-form tags, e.g. awaiting-code-review'),
         actor: z.string().optional().describe('Who is logging this task'),
         note: z
           .string()
@@ -84,6 +88,10 @@ export function registerTools(server: McpServer, store: TaskStore): void {
           .boolean()
           .optional()
           .describe('Only tasks escalated to a human'),
+        labels: z
+          .array(z.string())
+          .optional()
+          .describe('Keep tasks carrying every one of these labels'),
       }),
       annotations: { readOnlyHint: true },
     },
@@ -129,6 +137,12 @@ export function registerTools(server: McpServer, store: TaskStore): void {
         plan: z.string().optional(),
         branch: z.string().optional(),
         worktree: z.string().optional(),
+        labels: z
+          .array(z.string())
+          .optional()
+          .describe('Replace the whole set'),
+        addLabels: z.array(z.string()).optional(),
+        removeLabels: z.array(z.string()).optional(),
         note: z.string().optional(),
         actor: z.string().optional(),
       }),

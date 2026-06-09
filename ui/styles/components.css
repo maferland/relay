@@ -434,6 +434,25 @@
   white-space: nowrap;
 }
 
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
 /* ======================= META ROW bits ======================= */
 .meta {
   display: inline-flex;

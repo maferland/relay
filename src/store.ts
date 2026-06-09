@@ -40,6 +40,7 @@ export interface NewTaskInput {
   assignee?: string
   actor?: string
   note?: string
+  labels?: string[]
 }
 
 // One place both CLI and MCP build a task, so creation can't drift between surfaces.
@@ -63,6 +64,7 @@ export function buildTask(input: NewTaskInput): Task {
     branch: input.branch || undefined,
     worktree: input.worktree || undefined,
     assignee: input.assignee || undefined,
+    labels: input.labels?.length ? [...new Set(input.labels)] : undefined,
     createdBy: input.actor,
     createdAt: now,
     updatedAt: now,
@@ -101,6 +103,16 @@ function applyChanges(
   if (changes.branch !== undefined) task.branch = changes.branch || undefined
   if (changes.worktree !== undefined)
     task.worktree = changes.worktree || undefined
+  if (changes.labels !== undefined)
+    task.labels = changes.labels.length
+      ? [...new Set(changes.labels)]
+      : undefined
+  if (changes.addLabels?.length || changes.removeLabels?.length) {
+    const set = new Set(task.labels ?? [])
+    for (const l of changes.addLabels ?? []) set.add(l)
+    for (const l of changes.removeLabels ?? []) set.delete(l)
+    task.labels = set.size ? [...set] : undefined
+  }
   task.updatedAt = event.at
   task.history.push(event)
 }
@@ -111,6 +123,7 @@ export interface TaskFilter {
   project?: string
   since?: string // ISO; keeps tasks with updatedAt >= since
   needsHuman?: boolean // only tasks escalated to a human
+  labels?: string[] // keep tasks carrying every one of these labels
 }
 
 export interface ClaimInput {
@@ -200,6 +213,12 @@ export class SqliteTaskStore implements TaskStore {
       params.push(filter.project)
     }
     if (filter.needsHuman) where.push("json_extract(data, '$.needsHuman') = 1")
+    for (const label of filter.labels ?? []) {
+      where.push(
+        "EXISTS (SELECT 1 FROM json_each(data, '$.labels') WHERE value = ?)"
+      )
+      params.push(label)
+    }
     if (filter.since !== undefined) {
       const since = new Date(filter.since)
       if (isNaN(since.getTime()))

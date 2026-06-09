@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Avatar, Icon, MoveMenu } from '../components/ui.tsx'
+import { Avatar, Icon, LabelChips, MoveMenu } from '../components/ui.tsx'
 import { relTime } from '../lib/time.ts'
 import { STATE_META } from '../lib/transitions.ts'
 import type { Actor, State, Transition, UiTask } from '../lib/types.ts'
@@ -301,6 +301,12 @@ export function Board({
                             <span className="mono">{t.branch}</span>
                           </span>
                         )}
+                        {t.labels?.length ? (
+                          <>
+                            <span className="dotsep" />
+                            <LabelChips labels={t.labels} />
+                          </>
+                        ) : null}
                       </div>
                     </div>
                     <div className="row-right">
