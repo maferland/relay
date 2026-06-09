@@ -24,7 +24,13 @@ describe('tasks CLI', () => {
     extraEnv: Record<string, string> = {}
   ) {
     const proc = Bun.spawn(['bun', CLI, ...args], {
-      env: { ...process.env, RELAY_DIR: dir, RELAY_ACTOR: actor, ...extraEnv },
+      env: {
+        ...process.env,
+        RELAY_DIR: dir,
+        RELAY_ACTOR: actor,
+        XDG_CONFIG_HOME: dir,
+        ...extraEnv,
+      },
       stdout: 'pipe',
       stderr: 'pipe',
     })
@@ -365,6 +371,28 @@ describe('tasks CLI', () => {
       expect(stderr).toContain('Wrote')
       const target = path.join(dir, ...(segments as string[]))
       expect(fs.readFileSync(target, 'utf8')).toContain('relay')
+    })
+  })
+
+  describe('config', () => {
+    it('set/get name round-trips', async () => {
+      const set = await run(['config', 'set', 'name', 'Marc Test'])
+      expect(set.exitCode).toBe(0)
+      const get = await run(['config', 'get', 'name'])
+      expect(get.exitCode).toBe(0)
+      expect(get.stdout.trim()).toBe('Marc Test')
+    })
+
+    it('prints the whole config when given no key', async () => {
+      await run(['config', 'set', 'name', 'Marc'])
+      const { stdout } = await run(['config'])
+      expect(JSON.parse(stdout)).toEqual({ name: 'Marc' })
+    })
+
+    it('rejects a bad set with exit 2', async () => {
+      const { exitCode, stderr } = await run(['config', 'set', 'name'])
+      expect(exitCode).toBe(2)
+      expect(stderr).toMatch(/usage: relay config/)
     })
   })
 
