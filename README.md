@@ -46,6 +46,16 @@ States flow `todo → doing → review → done`, with `blocked` to the side. `r
 QA-handoff signal. Any send-back (a backward move or `blocked`) requires a `--note`, so the next
 actor always knows why.
 
+### Web UI
+
+A local web view of what needs you — escalated, blocked, reviews assigned to you, and your queue:
+
+```bash
+tasks ui --me <your-name>     # opens a local browser UI over the same store
+```
+
+The inbox is live; the full board and task-detail views are in progress.
+
 ### MCP
 
 The same operations are available to agents as MCP tools:

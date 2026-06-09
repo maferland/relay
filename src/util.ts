@@ -1,6 +1,12 @@
-import { execFileSync } from "child_process";
+import { exec, execFileSync } from "child_process";
 import os from "os";
 import path from "path";
+
+export function openBrowser(url: string): void {
+  if (process.env.AGENT_TASKS_NO_OPEN === "1") return;
+  const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+  exec(`${cmd} "${url}"`);
+}
 
 export function generateId(): string {
   return "task-" + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
