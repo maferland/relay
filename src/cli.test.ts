@@ -104,7 +104,16 @@ describe('tasks CLI', () => {
     const done = JSON.parse(
       (
         await run(
-          ['update', id, '--state', 'done', '--note', 'QA passed', '--json'],
+          [
+            'update',
+            id,
+            '--state',
+            'done',
+            '--tested',
+            '--note',
+            'QA passed',
+            '--json',
+          ],
           'lead'
         )
       ).stdout
@@ -393,6 +402,39 @@ describe('tasks CLI', () => {
       const { exitCode, stderr } = await run(['config', 'set', 'name'])
       expect(exitCode).toBe(2)
       expect(stderr).toMatch(/usage: relay config/)
+    })
+  })
+
+  describe('human checkpoints', () => {
+    it('sets the tested flag with --tested', async () => {
+      const { id } = await addTask('x')
+      const updated = JSON.parse(
+        (await run(['update', id, '--tested', '--json'])).stdout
+      ) as Task
+      expect(updated.humanTested).toBe(true)
+    })
+
+    it('blocks done without --tested, allows it with', async () => {
+      const { id } = await addTask('x', ['--assignee', 'w1'])
+      await run(['update', id, '--state', 'review', '--note', 'ready'], 'w1')
+      const blocked = await run(['update', id, '--state', 'done'])
+      expect(blocked.exitCode).toBe(1)
+      expect(blocked.stderr).toMatch(/never human-tested/)
+      const ok = JSON.parse(
+        (await run(['update', id, '--state', 'done', '--tested', '--json']))
+          .stdout
+      ) as Task
+      expect(ok.state).toBe('done')
+      expect(ok.humanTested).toBe(true)
+    })
+
+    it('clears the tested flag with --clear-tested', async () => {
+      const { id } = await addTask('x')
+      await run(['update', id, '--tested'])
+      const cleared = JSON.parse(
+        (await run(['update', id, '--clear-tested', '--json'])).stdout
+      ) as Task
+      expect(cleared.humanTested).toBeUndefined()
     })
   })
 

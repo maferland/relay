@@ -275,7 +275,11 @@ describe('SqliteTaskStore', () => {
     })
 
     it('filters by since (updatedAt >=)', async () => {
-      await store.update('task-c', { state: 'done' }, { actor: 'w1' })
+      await store.update(
+        'task-c',
+        { state: 'done', humanTested: true },
+        { actor: 'w1' }
+      )
       const since = (await store.get('task-c'))!.updatedAt
       expect((await store.list({ since })).map((t) => t.id)).toEqual(['task-c'])
     })
@@ -389,6 +393,98 @@ describe('SqliteTaskStore', () => {
         { actor: 'w' }
       )
       expect(moved.history.at(-1)!.kind).toBeUndefined()
+    })
+  })
+
+  describe('human checkpoints', () => {
+    it('sets reviewed and tested independently, and they accumulate', async () => {
+      await store.add(makeTask('task-h1'))
+      const r = await store.update(
+        'task-h1',
+        { humanReviewed: true },
+        { actor: 'lead' }
+      )
+      expect(r.humanReviewed).toBe(true)
+      expect(r.humanTested).toBeUndefined()
+      const t = await store.update(
+        'task-h1',
+        { humanTested: true },
+        { actor: 'lead' }
+      )
+      expect(t.humanReviewed).toBe(true)
+      expect(t.humanTested).toBe(true)
+    })
+
+    it('records a flag-only change in the history', async () => {
+      await store.add(makeTask('task-h2'))
+      const t = await store.update(
+        'task-h2',
+        { humanTested: true },
+        { actor: 'lead' }
+      )
+      expect(t.history.at(-1)).toMatchObject({ note: 'marked human-tested' })
+      expect(t.history.at(-1)!.to).toBeUndefined()
+    })
+
+    it('refuses to mark a reviewed task done unless human-tested', async () => {
+      await store.add(makeTask('task-h3'))
+      await store.update(
+        'task-h3',
+        { state: 'review' },
+        { actor: 'w', note: 'ready' }
+      )
+      await expect(
+        store.update('task-h3', { state: 'done' }, { actor: 'lead' })
+      ).rejects.toThrow(/never human-tested/)
+    })
+
+    it('lets a never-reviewed task reach done without a test', async () => {
+      await store.add(makeTask('task-h3b'))
+      await store.update('task-h3b', { state: 'doing' }, { actor: 'w' })
+      const done = await store.update(
+        'task-h3b',
+        { state: 'done' },
+        { actor: 'w' }
+      )
+      expect(done.state).toBe('done')
+      expect(done.humanTested).toBeUndefined()
+    })
+
+    it('allows done when tested in the same call', async () => {
+      await store.add(makeTask('task-h4', { state: 'review' }))
+      const done = await store.update(
+        'task-h4',
+        { state: 'done', humanTested: true },
+        { actor: 'lead' }
+      )
+      expect(done.state).toBe('done')
+      expect(done.humanTested).toBe(true)
+    })
+
+    it('keeps tested set when a task goes back to review', async () => {
+      await store.add(makeTask('task-h5', { state: 'review' }))
+      await store.update('task-h5', { humanTested: true }, { actor: 'lead' })
+      const back = await store.update(
+        'task-h5',
+        { state: 'todo' },
+        { actor: 'lead', note: 'one more fix' }
+      )
+      expect(back.state).toBe('todo')
+      expect(back.humanTested).toBe(true) // the fact survives the send-back
+    })
+
+    it('lets a human clear a checkpoint', async () => {
+      await store.add(makeTask('task-h6'))
+      await store.update('task-h6', { humanTested: true }, { actor: 'lead' })
+      const cleared = await store.update(
+        'task-h6',
+        { humanTested: false },
+        { actor: 'lead' }
+      )
+      expect(cleared.humanTested).toBeUndefined()
+      expect(cleared.history.at(-1)).toMatchObject({
+        note: 'cleared human-tested',
+      })
     })
   })
 })
