@@ -39,6 +39,7 @@ const PATHS: Record<string, string> = {
     'M5 3v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3M12 9v12M8 21h8M5 12l-2 2 2 2',
   send: 'M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z',
   list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  tag: 'M3 5.5A2.5 2.5 0 0 1 5.5 3H11l9 9-7.5 7.5L3 10.5V5.5ZM7 7h.01',
 }
 
 export function Icon({
@@ -180,6 +181,26 @@ export function ProjectTag({
       <Icon name="folder" size={12} stroke={1.7} />
       <span className="mono">{project}</span>
     </button>
+  )
+}
+
+export function LabelChip({ label }: { label: string }) {
+  return (
+    <span className="label-chip" title={'label: ' + label}>
+      <Icon name="tag" size={11} stroke={1.7} />
+      {label}
+    </span>
+  )
+}
+
+export function LabelChips({ labels }: { labels?: string[] }) {
+  if (!labels?.length) return null
+  return (
+    <>
+      {labels.map((l) => (
+        <LabelChip key={l} label={l} />
+      ))}
+    </>
   )
 }
 

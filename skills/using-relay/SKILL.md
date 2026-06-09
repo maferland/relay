@@ -112,6 +112,22 @@ To add to that conversation **without** a state change — a question, context, 
 relay comment task-1a2b3c4d "what did you mean by 'the redirect case'?"
 ```
 
+## Labels (orthogonal to state)
+
+State tracks _where_ a task is in the flow. Labels track _anything else_ — free-form tags you
+attach on top of the state. Reach for them to add review granularity without inventing new states:
+
+- `awaiting-code-review`, `awaiting-human` — waiting on a specific kind of review
+- `code-reviewed` — a gate that has passed
+
+```bash
+relay add "fix auth" --label awaiting-code-review,backend     # set at creation (replaces the set)
+relay update task-1a2b3c4d --add-label code-reviewed --rm-label awaiting-code-review
+relay list --label code-reviewed                              # filter (must carry every --label)
+```
+
+`--label` replaces the whole set; `--add-label` / `--rm-label` adjust it without clobbering.
+
 ## Reacting to changes
 
 Two ways, depending on whether you want to keep working while you wait.

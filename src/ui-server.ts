@@ -26,6 +26,7 @@ function adapt(task: Task) {
     branch: task.branch,
     worktree: task.worktree,
     needsHuman: task.needsHuman,
+    labels: task.labels ?? [],
     assignee: task.assignee,
     createdBy: task.createdBy,
     createdAt: ms(task.createdAt),
