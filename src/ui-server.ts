@@ -1,5 +1,5 @@
 import { buildTask, type SqliteTaskStore } from './store.js'
-import type { State, Task } from './types.js'
+import type { State, Task, TaskChanges } from './types.js'
 import { isState } from './types.js'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -15,6 +15,15 @@ function initials(name: string): string {
   return s.toUpperCase()
 }
 
+// Time the checkpoint was last set (latest history note that records it), so the UI can flag it stale.
+function checkpointAt(task: Task, marker: string): number | undefined {
+  for (let i = task.history.length - 1; i >= 0; i--) {
+    const note = task.history[i].note
+    if (note?.includes(marker)) return ms(task.history[i].at)
+  }
+  return undefined
+}
+
 function adapt(task: Task) {
   return {
     id: task.id,
@@ -26,6 +35,14 @@ function adapt(task: Task) {
     branch: task.branch,
     worktree: task.worktree,
     needsHuman: task.needsHuman,
+    humanReviewed: task.humanReviewed,
+    humanTested: task.humanTested,
+    reviewedAt: task.humanReviewed
+      ? checkpointAt(task, 'marked human-reviewed')
+      : undefined,
+    testedAt: task.humanTested
+      ? checkpointAt(task, 'marked human-tested')
+      : undefined,
     labels: task.labels ?? [],
     links: task.links ?? [],
     assignee: task.assignee,
@@ -78,6 +95,8 @@ interface RequestBody {
   description?: string
   project?: string
   assignee?: string
+  reviewed?: boolean
+  tested?: boolean
 }
 
 async function readBody(req: Request): Promise<RequestBody> {
@@ -157,7 +176,7 @@ export function createUiServer(store: SqliteTaskStore, opts: UiServerOptions) {
       }
 
       const match = p.match(
-        /^\/api\/tasks\/([^/]+)\/(transition|escalate|resolve|comment)$/
+        /^\/api\/tasks\/([^/]+)\/(transition|escalate|resolve|comment|checkpoint)$/
       )
       if (match && req.method === 'POST') {
         const id = decodeURIComponent(match[1])
@@ -189,6 +208,19 @@ export function createUiServer(store: SqliteTaskStore, opts: UiServerOptions) {
             return json(
               adapt(await store.comment(id, { actor: me, note: body.note }))
             )
+          }
+          if (action === 'checkpoint') {
+            const changes: TaskChanges = {}
+            if (typeof body.reviewed === 'boolean')
+              changes.humanReviewed = body.reviewed
+            if (typeof body.tested === 'boolean')
+              changes.humanTested = body.tested
+            if (
+              changes.humanReviewed === undefined &&
+              changes.humanTested === undefined
+            )
+              return json({ error: 'No checkpoint flag to set' }, 400)
+            return json(adapt(await store.update(id, changes, { actor: me })))
           }
           return json(
             adapt(await store.resolve(id, { actor: me, note: body.note }))

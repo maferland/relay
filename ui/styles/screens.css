@@ -617,6 +617,61 @@
   gap: 8px;
   border-bottom: 1px solid var(--border);
 }
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-bottom: 10px;
+  margin-bottom: 2px;
+  border-bottom: 1px dashed var(--border);
+}
+.checklist .ck-label {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  text-align: left;
+  transition: background var(--speed);
+}
+.check-item:hover {
+  background: var(--surface-2);
+}
+.check-item .ci-box {
+  color: var(--text-faint);
+}
+.check-item.is-done .ci-box,
+.check-item.is-stale .ci-box {
+  color: var(--st-done-fg);
+}
+.check-item.is-pending .ci-box {
+  color: var(--st-review-fg);
+}
+.check-item.is-todo .ci-name {
+  color: var(--text-muted);
+}
+.ci-stale {
+  margin-left: auto;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--st-review-bd);
+  background: var(--st-review-bg);
+  color: var(--st-review-fg);
+}
 .dmeta {
   display: flex;
   flex-direction: column;
@@ -639,6 +694,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 .dmeta-row .val {
   color: var(--text);
