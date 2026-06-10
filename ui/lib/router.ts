@@ -72,7 +72,13 @@ export function parseLocation(pathname: string, search: string): RouteState {
   const segments = pathname.split('/').filter(Boolean).map(decodeURIComponent)
 
   if (segments.length === 0) {
-    return { screen: 'inbox', taskId: null, board: { ...DEFAULT_FILTERS } }
+    // The repo lens (project) persists onto the inbox too; other board filters don't apply here.
+    const proj = new URLSearchParams(search).get('project') || null
+    return {
+      screen: 'inbox',
+      taskId: null,
+      board: { ...DEFAULT_FILTERS, proj },
+    }
   }
 
   if (segments[0] === 'task' && segments.length === 2) {
@@ -98,7 +104,12 @@ export function stateToLocation(state: RouteState): {
   pathname: string
   search: string
 } {
-  if (state.screen === 'inbox') return { pathname: '/', search: '' }
+  if (state.screen === 'inbox') {
+    const params = new URLSearchParams()
+    if (state.board.proj) params.set('project', state.board.proj)
+    const search = params.toString()
+    return { pathname: '/', search: search ? `?${search}` : '' }
+  }
 
   if (state.screen === 'detail' && state.taskId) {
     return { pathname: `/task/${encodeURIComponent(state.taskId)}`, search: '' }
