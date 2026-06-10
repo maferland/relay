@@ -50,6 +50,10 @@ export interface Task {
   branch?: string // git branch the work happens on
   worktree?: string // worktree dir the work happens in
   needsHuman?: boolean // escalated: waiting on a human, orthogonal to state
+  // Independent human checkpoints: a task can be tested and still back in review.
+  // They accumulate until a human clears them; a reviewed task needs humanTested for done.
+  humanReviewed?: boolean
+  humanTested?: boolean
   labels?: string[] // free-form tags, orthogonal to state (e.g. awaiting-code-review)
   links?: TaskLink[] // remote counterparts (PRs, tickets) a connector can poll
   assignee?: string
@@ -71,4 +75,6 @@ export interface TaskChanges {
   addLabels?: string[] // add without clobbering
   removeLabels?: string[] // remove without clobbering
   addLink?: TaskLink // add a link, replacing any with the same system+ref
+  humanReviewed?: boolean // true to set, false to clear
+  humanTested?: boolean // true to set, false to clear
 }

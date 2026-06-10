@@ -84,7 +84,28 @@ function applyChanges(
   const event: TaskEvent = { at: new Date().toISOString() }
   if (meta.actor) event.actor = meta.actor
   if (note) event.note = note
+  // Human checkpoints apply before the state guard so `--state done --tested` works.
+  const checks: string[] = []
+  if (changes.humanReviewed !== undefined) {
+    const next = changes.humanReviewed || undefined
+    if (next !== task.humanReviewed)
+      checks.push(next ? 'marked human-reviewed' : 'cleared human-reviewed')
+    task.humanReviewed = next
+  }
+  if (changes.humanTested !== undefined) {
+    const next = changes.humanTested || undefined
+    if (next !== task.humanTested)
+      checks.push(next ? 'marked human-tested' : 'cleared human-tested')
+    task.humanTested = next
+  }
   if (changes.state && changes.state !== task.state) {
+    const wasReviewed =
+      task.state === 'review' || task.history.some((e) => e.to === 'review')
+    if (changes.state === 'done' && wasReviewed && !task.humanTested) {
+      throw new Error(
+        'Cannot mark done: this task was reviewed but never human-tested. Pass --tested (or `relay update <id> --tested`) first.'
+      )
+    }
     if (requiresNote(task.state, changes.state) && !note) {
       throw new Error(
         `A note is required to move ${task.state} → ${changes.state} (explain why you are sending it back).`
@@ -121,6 +142,7 @@ function applyChanges(
     kept.push(add)
     task.links = kept
   }
+  if (!event.note && !event.to && checks.length) event.note = checks.join(', ')
   task.updatedAt = event.at
   task.history.push(event)
 }
