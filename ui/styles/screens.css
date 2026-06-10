@@ -660,19 +660,17 @@
 .check-item.is-todo .ci-name {
   color: var(--text-muted);
 }
-.ci-cta,
-.ci-suffix {
+.ci-stale {
   margin-left: auto;
-  font-size: var(--fs-xs);
-  color: var(--text-faint);
-}
-.ci-suffix {
-  margin-left: 0;
-  color: var(--st-review-fg);
-}
-.check-item.is-pending .ci-cta {
-  color: var(--st-review-fg);
+  font-size: var(--fs-micro);
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--st-review-bd);
+  background: var(--st-review-bg);
+  color: var(--st-review-fg);
 }
 .dmeta {
   display: flex;
