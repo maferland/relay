@@ -125,6 +125,63 @@ export function transitionsFor(state: State): Transition[] {
   }
 }
 
+// Curated state moves for the human operator's detail rail, instead of the agent's raw
+// transition list (no "Start task"). Checkpoints and resolve are rendered separately.
+export function humanActions(state: State): Transition[] {
+  switch (state) {
+    case 'review':
+      return [
+        {
+          to: 'ready',
+          label: 'Send to ready',
+          icon: 'check',
+          primary: true,
+          good: true,
+        },
+        {
+          to: 'todo',
+          label: 'Send back',
+          icon: 'arrowLeft',
+          requiresNote: true,
+          danger: true,
+        },
+      ]
+    case 'ready':
+      return [
+        {
+          to: 'merged',
+          label: 'Approve & merge',
+          icon: 'check',
+          primary: true,
+          good: true,
+        },
+        {
+          to: 'doing',
+          label: 'Send back',
+          icon: 'arrowLeft',
+          requiresNote: true,
+          danger: true,
+        },
+      ]
+    case 'blocked':
+      return [
+        {
+          to: 'doing',
+          label: 'Unblock & resume',
+          icon: 'arrowRight',
+          primary: true,
+        },
+        { to: 'todo', label: 'Send to backlog', icon: 'arrowLeft' },
+      ]
+    case 'merged':
+      return [
+        { to: 'doing', label: 'Reopen', icon: 'sync', requiresNote: true },
+      ]
+    default:
+      return [] // todo / doing are agent-owned; nothing for the human to drive
+  }
+}
+
 const ORDER: Record<string, number> = {
   todo: 0,
   doing: 1,

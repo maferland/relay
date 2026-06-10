@@ -19,6 +19,12 @@ export interface UiTask {
   branch?: string
   worktree?: string
   needsHuman?: boolean
+  humanReviewed?: boolean
+  humanTested?: boolean
+  // When each checkpoint was last set (epoch ms); lets the UI flag a checkpoint as
+  // stale once the task sees activity after it was marked.
+  reviewedAt?: number
+  testedAt?: number
   labels?: string[]
   links?: {
     system: string
