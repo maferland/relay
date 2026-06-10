@@ -14,7 +14,7 @@ const COMMANDS: [string, string][] = [
   ['watch', 'block until a task changes'],
   ['escalate', 'flag as needing a human'],
   ['resolve', 'clear the needs-human flag'],
-  ['ui', 'open the local web UI'],
+  ['ui', 'open the local web UI (optional task id opens that task)'],
   ['config', 'view or set your operator identity'],
   ['mcp', 'run the stdio MCP server'],
   ['upgrade', 'update relay to the latest release'],

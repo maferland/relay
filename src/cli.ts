@@ -10,7 +10,13 @@ import {
   type TaskLink,
 } from './types.js'
 import { syncLink } from './connectors/index.js'
-import { detectProject, gitContext, openBrowser, resolveActor } from './util.js'
+import {
+  detectProject,
+  gitContext,
+  openBrowser,
+  resolveActor,
+  taskDetailUrl,
+} from './util.js'
 import { operatorName, readConfig, writeConfig } from './config.js'
 import { upgradeCommand } from './upgrade.js'
 import { maybeNudge } from './update-check.js'
@@ -570,8 +576,11 @@ async function uiCommand(args: ParsedArgs): Promise<void> {
     html: htmlMod.loadUiHtml(),
   })
   const url = `http://localhost:${server.port}`
-  process.stderr.write(`relay UI on ${url}  (you = ${me})\n`)
-  openBrowser(url)
+  const [taskId] = args.positional
+  process.stderr.write(
+    `relay UI on ${url}  (you = ${me})${taskId ? ` — opening ${taskId}` : ''}\n`
+  )
+  openBrowser(taskDetailUrl(url, taskId))
 }
 
 const HELP =
@@ -590,7 +599,7 @@ const HELP =
   '  relay sync <id>   ·   relay watch <id> --remote   (pull PR status onto the task)\n' +
   '  relay escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
   '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
-  '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
+  '  relay ui [<id>] [--me <name>] [--port N]   (local web UI; <id> opens straight to that task)\n' +
   '  relay config set name "<you>"   (your operator identity; fixes "unknown")\n' +
   '  relay mcp   (stdio MCP server over the same store)\n' +
   '  relay upgrade   ·   relay --version\n' +
