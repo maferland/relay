@@ -173,6 +173,119 @@ function ResolveModal({
   )
 }
 
+function CreateModal({
+  projects,
+  defaultProject,
+  onCancel,
+  onConfirm,
+}: {
+  projects: string[]
+  defaultProject: string
+  onCancel: () => void
+  onConfirm: (input: api.NewTaskInput) => void
+}) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [project, setProject] = useState(defaultProject)
+  const [assignee, setAssignee] = useState('')
+  const ref = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    ref.current?.focus()
+  }, [])
+  const ok = title.trim().length > 0 && project.trim().length > 0
+  const submit = () => {
+    if (!ok) return
+    onConfirm({
+      title: title.trim(),
+      description: description.trim() || undefined,
+      project: project.trim(),
+      assignee: assignee.trim() || undefined,
+    })
+  }
+
+  return (
+    <div
+      className="modal-scrim"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCancel()
+      }}
+    >
+      <div className="modal" role="dialog" aria-modal="true">
+        <div className="modal-head">
+          <div className="m-kicker">
+            <Icon name="plus" size={14} /> New task
+          </div>
+          <h3>Create a task</h3>
+          <p>Log work for an agent to pick up, or track it yourself.</p>
+        </div>
+        <div className="modal-body create-fields">
+          <div>
+            <div className="field-label">
+              Title<span className="req">*</span>
+            </div>
+            <input
+              ref={ref}
+              className="field-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit()
+              }}
+              placeholder="What needs doing?"
+            />
+          </div>
+          <div>
+            <div className="field-label">Description</div>
+            <textarea
+              className="note-input"
+              style={{ minHeight: 64 }}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Context for whoever picks this up…"
+            />
+          </div>
+          <div className="create-row">
+            <div>
+              <div className="field-label">
+                Repo<span className="req">*</span>
+              </div>
+              <input
+                className="field-input"
+                list="create-projects"
+                value={project}
+                onChange={(e) => setProject(e.target.value)}
+                placeholder="project"
+              />
+              <datalist id="create-projects">
+                {projects.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </div>
+            <div>
+              <div className="field-label">Assignee</div>
+              <input
+                className="field-input"
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+                placeholder="unassigned"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <Button variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="primary" icon="plus" disabled={!ok} onClick={submit}>
+            Create task
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ToastHost({
   toasts,
   onOpen,
@@ -234,6 +347,7 @@ export function App() {
     transition: Transition
   } | null>(null)
   const [resolveTask, setResolveTask] = useState<UiTask | null>(null)
+  const [creating, setCreating] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(Date.now())
@@ -428,6 +542,34 @@ export function App() {
     }
   }
 
+  async function doCreate(input: api.NewTaskInput) {
+    setCreating(false)
+    try {
+      const created = await api.createTask(input)
+      setSnap((s) => ({
+        ...s,
+        projects: s.projects.includes(created.project)
+          ? s.projects
+          : [...s.projects, created.project].sort(),
+        tasks: [created, ...s.tasks],
+      }))
+      pushToast({
+        kind: 'success',
+        icon: 'plus',
+        title: 'Task created',
+        desc: created.title,
+        taskId: created.id,
+      })
+    } catch (e) {
+      pushToast({
+        kind: 'block',
+        icon: 'alert',
+        title: "Couldn't create task",
+        desc: e instanceof Error ? e.message : String(e),
+      })
+    }
+  }
+
   async function onComment(task: UiTask, note: string) {
     try {
       patchTask(await api.comment(task.id, note))
@@ -583,6 +725,14 @@ export function App() {
             </span>
           )}
           <div className="spacer" />
+          <Button
+            variant="primary"
+            size="sm"
+            icon="plus"
+            onClick={() => setCreating(true)}
+          >
+            New task
+          </Button>
           <div
             className={`sync ${syncing ? 'syncing' : ''}`}
             title="local store polling"
@@ -658,6 +808,14 @@ export function App() {
           task={resolveTask}
           onCancel={() => setResolveTask(null)}
           onConfirm={(note) => doResolve(resolveTask, note)}
+        />
+      )}
+      {creating && (
+        <CreateModal
+          projects={projects}
+          defaultProject={proj ?? projects[0] ?? ''}
+          onCancel={() => setCreating(false)}
+          onConfirm={doCreate}
         />
       )}
       <ToastHost toasts={toasts} onOpen={openTask} onDismiss={dismissToast} />

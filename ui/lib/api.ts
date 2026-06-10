@@ -11,6 +11,22 @@ export async function fetchSnapshot(): Promise<Snapshot> {
   return jsonOrThrow(await fetch('/api/snapshot'))
 }
 
+export interface NewTaskInput {
+  title: string
+  description?: string
+  project: string
+  assignee?: string
+}
+
+export async function createTask(input: NewTaskInput): Promise<UiTask> {
+  const res = await fetch('/api/tasks', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return (await jsonOrThrow(res)) as UiTask
+}
+
 export async function transition(
   id: string,
   to: State,
