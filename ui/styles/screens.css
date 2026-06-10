@@ -617,51 +617,42 @@
   gap: 8px;
   border-bottom: 1px solid var(--border);
 }
-.checkpoint-row {
+.checklist {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 1px;
   margin-top: 4px;
   padding-top: 12px;
   border-top: 1px dashed var(--border);
 }
-.checkpoint-row .ck-label {
+.checklist .ck-label {
   font-size: var(--fs-xs);
   color: var(--text-faint);
-  margin-right: 2px;
+  margin-bottom: 4px;
 }
-.ck-toggle {
-  display: inline-flex;
+.check-item {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
-  font-weight: 550;
+  gap: 8px;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  border-radius: var(--r-sm);
   cursor: pointer;
-  transition: all var(--speed);
-}
-.ck-toggle:hover {
-  border-color: var(--border-strong);
+  font-size: var(--fs-sm);
   color: var(--text);
+  text-align: left;
+  transition: background var(--speed);
 }
-.ck-toggle.is-set {
-  border-color: var(--st-done-bd);
-  background: var(--st-done-bg);
-  color: var(--st-done-fg);
+.check-item:hover {
+  background: var(--surface-2);
 }
-.ck-toggle.is-stale,
-.ck-toggle.is-pending {
-  border-color: var(--st-review-bd);
-  background: var(--st-review-bg);
-  color: var(--st-review-fg);
+.check-item.is-todo .ci-name {
+  color: var(--text-faint);
 }
-.ck-toggle.is-pending {
-  font-weight: 600;
+.check-item .ci-suffix {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
 }
 .dmeta {
   display: flex;
