@@ -24,6 +24,10 @@ Builds from source (needs [Bun](https://bun.sh)) and installs the `relay` binary
 `~/.local/bin`, the `using-relay` skill to `~/.claude/skills`, and registers the MCP server
 with Claude Code. Re-run any time to update. Or clone and `./install.sh` from the checkout.
 
+Already installed? `relay upgrade` downloads the latest release binary (verifying its checksum),
+and `relay --version` prints what you're on. relay also checks for a newer release about once a day
+and prints a one-line nudge in an interactive terminal; set `RELAY_NO_UPDATE_CHECK=1` to silence it.
+
 ## Usage
 
 Set who you are, then log and hand off work:

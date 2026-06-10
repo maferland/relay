@@ -326,6 +326,12 @@ describe('tasks CLI', () => {
     expect(stderr).toMatch(/local-first task tracker/)
   })
 
+  it('--version prints a version and exits 0', async () => {
+    const { exitCode, stdout } = await run(['--version'])
+    expect(exitCode).toBe(0)
+    expect(stdout.trim()).toMatch(/^(\d+\.\d+\.\d+|dev)$/)
+  })
+
   describe('labels', () => {
     it('sets, adjusts, and filters by labels', async () => {
       const { id } = await addTask('labelled', ['--label', 'backend,api'])
