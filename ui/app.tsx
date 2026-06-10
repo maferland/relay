@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Avatar, Button, Icon, StateBadge } from './components/ui.tsx'
 import * as api from './lib/api.ts'
+import type { BoardFilters } from './lib/router.ts'
+import { DEFAULT_FILTERS, useRouter } from './lib/router.ts'
 import { STATE_META } from './lib/transitions.ts'
 import type { Actor, Snapshot, Transition, UiTask } from './lib/types.ts'
 import { Board } from './screens/board.tsx'
 import { Detail } from './screens/detail.tsx'
 import { Inbox } from './screens/inbox.tsx'
 
-type View = 'inbox' | 'board' | 'detail'
 interface Toast {
   id: string
   kind: string
@@ -224,8 +225,9 @@ export function App() {
     () => localStorage.getItem('at-theme') !== 'light'
   )
   const [snap, setSnap] = useState<Snapshot>(EMPTY)
-  const [view, setView] = useState<View>('inbox')
-  const [openId, setOpenId] = useState<string | null>(null)
+  const { route, navigate } = useRouter()
+  const view = route.screen
+  const openId = route.taskId
   const [modal, setModal] = useState<{
     task: UiTask
     transition: Transition
@@ -238,6 +240,10 @@ export function App() {
   const [syncing, setSyncing] = useState(false)
 
   const { tasks, actors, me, projects } = snap
+
+  // Remember board filters across a detour into a task so the Back button restores them.
+  const lastBoardFilters = useRef<BoardFilters>(route.board)
+  if (view === 'board') lastBoardFilters.current = route.board
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
@@ -302,13 +308,14 @@ export function App() {
     setToasts((prev) => prev.filter((x) => x.id !== id))
 
   function openTask(id: string) {
-    setOpenId(id)
-    setView('detail')
+    navigate({ screen: 'detail', taskId: id, board: DEFAULT_FILTERS })
     document.querySelector('.scroll')?.scrollTo(0, 0)
   }
-  function goView(v: View) {
-    setView(v)
-    setOpenId(null)
+  function goInbox() {
+    navigate({ screen: 'inbox', taskId: null, board: DEFAULT_FILTERS })
+  }
+  function goBoard(board: BoardFilters) {
+    navigate({ screen: 'board', taskId: null, board })
   }
 
   function patchTask(updated: UiTask) {
@@ -441,7 +448,7 @@ export function App() {
         <nav className="nav">
           <button
             className={`nav-item ${view === 'inbox' ? 'is-active' : ''}`}
-            onClick={() => goView('inbox')}
+            onClick={goInbox}
           >
             <Icon name="inbox" size={17} /> Needs you
             {needsYouCount > 0 && (
@@ -452,7 +459,7 @@ export function App() {
           </button>
           <button
             className={`nav-item ${view === 'board' || view === 'detail' ? 'is-active' : ''}`}
-            onClick={() => goView('board')}
+            onClick={() => goBoard(lastBoardFilters.current)}
           >
             <Icon name="board" size={17} /> Board
             <span className="nav-count">{tasks.length}</span>
@@ -470,7 +477,7 @@ export function App() {
                 key={p}
                 className="nav-item"
                 style={{ padding: '6px 10px' }}
-                onClick={() => goView('board')}
+                onClick={() => goBoard({ ...DEFAULT_FILTERS, proj: p })}
               >
                 <Icon
                   name="folder"
@@ -570,6 +577,8 @@ export function App() {
               me={me}
               projects={projects}
               now={now}
+              filters={route.board}
+              onFilters={goBoard}
               onOpen={openTask}
               onAction={onAction}
             />
@@ -580,7 +589,7 @@ export function App() {
               actors={actors}
               me={me}
               now={now}
-              onBack={() => goView('board')}
+              onBack={() => goBoard(lastBoardFilters.current)}
               onAction={onAction}
               onComment={onComment}
               onResolve={onResolve}

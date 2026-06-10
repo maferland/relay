@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Avatar, Icon, LabelChips, MoveMenu } from '../components/ui.tsx'
+import type { BoardFilters, SinceWindow } from '../lib/router.ts'
 import { relTime } from '../lib/time.ts'
 import { STATE_META } from '../lib/transitions.ts'
 import type { Actor, State, Transition, UiTask } from '../lib/types.ts'
 import { Kanban } from './kanban.tsx'
 
-const SINCE_OPTS = [
+const SINCE_OPTS: { k: SinceWindow; label: string; ms: number }[] = [
   { k: 'any', label: 'Any time', ms: Infinity },
   { k: '1h', label: 'Last hour', ms: 3600e3 },
   { k: '24h', label: 'Last 24h', ms: 24 * 3600e3 },
@@ -24,6 +25,8 @@ interface BoardProps {
   me: string
   projects: string[]
   now: number
+  filters: BoardFilters
+  onFilters: (next: BoardFilters) => void
   onOpen: (id: string) => void
   onAction: (task: UiTask, t: Transition) => void
 }
@@ -34,14 +37,21 @@ export function Board({
   me,
   projects,
   now,
+  filters,
+  onFilters,
   onOpen,
   onAction,
 }: BoardProps) {
-  const [q, setQ] = useState('')
-  const [states, setStates] = useState<Set<State>>(new Set())
-  const [proj, setProj] = useState<string | null>(null)
-  const [mineOnly, setMineOnly] = useState(false)
-  const [since, setSince] = useState('any')
+  const { proj, mineOnly, since } = filters
+  const q = filters.q
+  const states = useMemo(() => new Set(filters.states), [filters.states])
+
+  const setQ = (next: string) => onFilters({ ...filters, q: next })
+  const setProj = (next: string | null) => onFilters({ ...filters, proj: next })
+  const setMineOnly = (next: boolean) =>
+    onFilters({ ...filters, mineOnly: next })
+  const setSince = (next: SinceWindow) => onFilters({ ...filters, since: next })
+
   const [grouped, setGrouped] = useState(true)
   const [bview, setBview] = useState<'list' | 'kanban'>('kanban')
   const [sel, setSel] = useState(-1)
@@ -109,13 +119,12 @@ export function Board({
     return c
   }, [tasks])
 
-  const toggleState = (s: State) =>
-    setStates((prev) => {
-      const n = new Set(prev)
-      if (n.has(s)) n.delete(s)
-      else n.add(s)
-      return n
-    })
+  const toggleState = (s: State) => {
+    const next = states.has(s)
+      ? filters.states.filter((x) => x !== s)
+      : [...filters.states, s]
+    onFilters({ ...filters, states: next })
+  }
 
   const groups = useMemo<[string, UiTask[]][]>(() => {
     if (!grouped) return [['', filtered]]
@@ -210,7 +219,7 @@ export function Board({
         <span style={{ width: 8 }} />
         <button
           className={`chip ${mineOnly ? 'is-active' : ''}`}
-          onClick={() => setMineOnly((m) => !m)}
+          onClick={() => setMineOnly(!mineOnly)}
         >
           <Icon name="user" size={13} /> assigned to me
         </button>
