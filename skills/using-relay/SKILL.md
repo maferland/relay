@@ -100,6 +100,10 @@ Once the human has handled it, clear the flag: `relay resolve task-1a2b3c4d --no
 Prefer `escalate` over parking a task in `blocked` when the blocker is specifically a human — it
 stays findable regardless of state and doesn't conflate "blocked on another task" with "needs me".
 
+When the human asks to _see_ a task ("show me X", "open that one"), point their browser straight
+at it: `relay ui task-1a2b3c4d` starts the web UI and opens that task's detail page. Bare
+`relay ui` opens the inbox.
+
 ## Notes are required on send-backs
 
 Moving a task **backward** (e.g. `review → todo`, `review → doing`, reopening `merged`) or to
