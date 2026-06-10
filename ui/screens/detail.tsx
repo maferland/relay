@@ -412,58 +412,59 @@ export function Detail({
               {actions.map((t, i) => {
                 const blockMerge = t.to === 'merged' && needsTestToMerge
                 return (
-                  <Button
-                    key={t.to + String(i)}
-                    variant={
-                      t.primary
-                        ? t.good
-                          ? 'accent'
-                          : 'primary'
-                        : t.danger
-                          ? 'dangerout'
-                          : 'default'
-                    }
-                    size="md"
-                    icon={t.icon}
-                    disabled={blockMerge}
-                    title={
-                      blockMerge
-                        ? 'Mark tested before you can merge'
-                        : undefined
-                    }
-                    onClick={() => onAction(task, t)}
-                  >
-                    {t.label}
-                  </Button>
+                  <Fragment key={t.to + String(i)}>
+                    <Button
+                      variant={
+                        t.primary
+                          ? t.good
+                            ? 'accent'
+                            : 'primary'
+                          : t.danger
+                            ? 'dangerout'
+                            : 'default'
+                      }
+                      size="md"
+                      icon={t.icon}
+                      disabled={blockMerge}
+                      onClick={() => onAction(task, t)}
+                    >
+                      {t.label}
+                    </Button>
+                    {blockMerge && (
+                      <p className="drail-hint">
+                        <Icon name="alert" size={12} /> Mark tested first to
+                        record the merge.
+                      </p>
+                    )}
+                  </Fragment>
                 )
               })}
-              {needsTestToMerge && task.state === 'ready' && (
-                <p className="drail-hint">
-                  <Icon name="alert" size={12} /> Mark tested to enable merge.
-                </p>
-              )}
               {showCheckpoints && (
-                <div className="checkpoint-actions">
-                  <Button
-                    variant={task.humanReviewed ? 'accent' : 'default'}
-                    size="sm"
-                    icon={task.humanReviewed ? 'check' : 'user'}
+                <div className="checkpoint-row">
+                  <span className="ck-label">Checks</span>
+                  <button
+                    type="button"
+                    className={`ck-toggle${task.humanReviewed ? ' is-set' : ''}${reviewedStale ? ' is-stale' : ''}`}
                     onClick={() =>
                       onCheckpoint(task, { reviewed: !task.humanReviewed })
                     }
                   >
-                    {task.humanReviewed ? 'Reviewed' : 'Mark reviewed'}
-                  </Button>
-                  <Button
-                    variant={task.humanTested ? 'accent' : 'default'}
-                    size="sm"
-                    icon="check"
+                    <Icon
+                      name={task.humanReviewed ? 'check' : 'dot'}
+                      size={12}
+                    />
+                    Reviewed{reviewedStale ? ' · stale' : ''}
+                  </button>
+                  <button
+                    type="button"
+                    className={`ck-toggle${task.humanTested ? ' is-set' : ''}${testedStale ? ' is-stale' : ''}`}
                     onClick={() =>
                       onCheckpoint(task, { tested: !task.humanTested })
                     }
                   >
-                    {task.humanTested ? 'Tested' : 'Mark tested'}
-                  </Button>
+                    <Icon name={task.humanTested ? 'check' : 'dot'} size={12} />
+                    Tested{testedStale ? ' · stale' : ''}
+                  </button>
                 </div>
               )}
             </div>
@@ -473,24 +474,6 @@ export function Detail({
                   {task.project}
                 </span>
               </MetaRow>
-              {showCheckpoints && (
-                <MetaRow icon="check" k="checkpoints">
-                  <span className="ck-chips">
-                    <span
-                      className={`ck-chip${task.humanReviewed ? ' is-set' : ''}${reviewedStale ? ' is-stale' : ''}`}
-                    >
-                      <Icon name="user" size={11} /> reviewed
-                      {reviewedStale ? ' · stale' : ''}
-                    </span>
-                    <span
-                      className={`ck-chip${task.humanTested ? ' is-set' : ''}${testedStale ? ' is-stale' : ''}`}
-                    >
-                      <Icon name="check" size={11} /> tested
-                      {testedStale ? ' · stale' : ''}
-                    </span>
-                  </span>
-                </MetaRow>
-              )}
               {task.labels?.length ? (
                 <MetaRow icon="tag" k="labels">
                   <span className="card-labels">
