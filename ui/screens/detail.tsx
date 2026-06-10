@@ -284,8 +284,7 @@ function CheckItem({
         className="ci-box"
       />
       <span className="ci-name">{label}</span>
-      {stale && <span className="ci-suffix">stale</span>}
-      {!set && <span className="ci-cta">Mark {label.toLowerCase()}</span>}
+      {stale && <span className="ci-stale">stale</span>}
     </button>
   )
 }
