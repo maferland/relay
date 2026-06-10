@@ -25,13 +25,14 @@ back to your `$USER`; set `RELAY_ACTOR` so each agent's changes are attributable
 
 ## The workflow
 
-States flow `todo → doing → review → done`, with `blocked` off to the side. **`review` is the
-QA-handoff signal.** A coordinator polls for it.
+States flow `todo → doing → review → ready → merged`, with `blocked` off to the side. **`review`
+is the QA-handoff signal** a coordinator polls for; **`ready`** means QA'd and waiting on the
+human's review and merge; **`merged`** is terminal.
 
 ```
-todo  ──claim──▶  doing  ──"--state review"──▶  review  ──"--state done"──▶  done
-  ▲                                               │
-  └────────── "--state todo --note <why>" ◀───────┘   (QA rejects)
+todo ─claim─▶ doing ─"--state review"─▶ review ─"--state ready"─▶ ready ─"--state merged"─▶ merged
+  ▲                                       │
+  └────────── "--state todo --note <why>" ◀┘   (QA rejects)
 ```
 
 ### Logging a task for someone else
@@ -57,8 +58,9 @@ relay update task-1a2b3c4d --state review --note "Fixed; ready for QA. Touched a
 
 `claim` records **where** you are working: it auto-stamps the current git `branch` and
 `worktree` onto the task (run it from the worktree where you'll do the work). A coordinator then
-knows exactly where to look. `claim` only picks up open work — a task already in `review` or
-`done` must be reopened deliberately with `update --state doing --note "<why>"`, not claimed.
+knows exactly where to look. `claim` only picks up open work: a task already in `review`,
+`ready`, or `merged` must be reopened deliberately with `update --state doing --note "<why>"`,
+not claimed.
 
 ### Coordinating / QA
 
@@ -70,11 +72,12 @@ relay list --state review --all                # across every project
 relay show task-1a2b3c4d                        # full detail + history exchange
 ```
 
-- **Pass QA:** `relay update task-1a2b3c4d --state done --note "QA passed"`
-- **Reject (send back):** `relay update task-1a2b3c4d --state todo --note "Login works but logout 500s — see step 3"`
+- **Pass QA:** `relay update task-1a2b3c4d --state ready --note "QA passed"` hands it to the human to review and merge.
+- **Merge (human):** `relay update task-1a2b3c4d --state merged --tested --note "shipped"`. A reviewed task needs `--tested` to reach `merged`.
+- **Reject (send back):** `relay update task-1a2b3c4d --state todo --note "Login works but logout 500s - see step 3"`
 
 You can also QA by delegating: spawn a subagent whose job is to verify a task in `review` and
-either move it to `done` or send it back with findings.
+either move it to `ready` or send it back with findings.
 
 ## Escalating to a human
 
@@ -99,7 +102,7 @@ stays findable regardless of state and doesn't conflate "blocked on another task
 
 ## Notes are required on send-backs
 
-Moving a task **backward** (e.g. `review → todo`, `review → doing`, reopening `done`) or to
+Moving a task **backward** (e.g. `review → todo`, `review → doing`, reopening `merged`) or to
 `blocked` **requires `--note`**. The command fails without one. This is on purpose: the next
 actor needs to know _why_ it came back. Forward moves don't need a note (but a short one helps).
 

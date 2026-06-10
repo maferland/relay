@@ -1,4 +1,4 @@
-export type State = 'todo' | 'doing' | 'review' | 'done' | 'blocked'
+export type State = 'todo' | 'doing' | 'review' | 'ready' | 'merged' | 'blocked'
 
 export interface UiEvent {
   at: number // epoch ms

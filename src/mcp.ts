@@ -129,7 +129,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
     {
       title: 'Update a task',
       description:
-        "Change fields and/or state and append a note to the history. To hand off for QA set state='review'. To reject after QA set state='doing' with a note. A task that has been in review cannot reach state='done' unless humanTested is true (pass humanTested in the same call). Pass an empty string to clear assignee/description.",
+        "Change fields and/or state and append a note to the history. To hand off for QA set state='review'. After QA passes set state='ready' (awaiting the human's review and merge); 'merged' is terminal. To reject after QA set state='doing' with a note. A task that has been in review cannot reach state='merged' unless humanTested is true (pass humanTested in the same call). Pass an empty string to clear assignee/description.",
       inputSchema: z.object({
         id: z.string(),
         state: StateEnum.optional(),
@@ -152,7 +152,9 @@ export function registerTools(server: McpServer, store: TaskStore): void {
         humanTested: z
           .boolean()
           .optional()
-          .describe('Set/clear the human-tested checkpoint; required for done'),
+          .describe(
+            'Set/clear the human-tested checkpoint; required for merged'
+          ),
         note: z.string().optional(),
         actor: z.string().optional(),
       }),
@@ -237,7 +239,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
     {
       title: 'Claim a task',
       description:
-        "Assign a task to yourself and move it to 'doing'. Tasks already in 'review' or 'done' must be reopened deliberately via update_task with a note, not claimed.",
+        "Assign a task to yourself and move it to 'doing'. Tasks already in 'review', 'ready', or 'merged' must be reopened deliberately via update_task with a note, not claimed.",
       inputSchema: z.object({
         id: z.string(),
         assignee: z.string().describe('Actor id claiming the task'),
