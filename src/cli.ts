@@ -12,6 +12,11 @@ import { detectProject, gitContext, openBrowser, resolveActor } from './util.js'
 import { upgradeCommand } from './upgrade.js'
 import { maybeNudge } from './update-check.js'
 import { VERSION } from './version.js'
+import {
+  completionScript,
+  COMPLETION_SHELLS,
+  isCompletionShell,
+} from './completion.js'
 
 const BOOL_FLAGS = new Set([
   'all',
@@ -481,6 +486,14 @@ async function watchCommand(args: ParsedArgs): Promise<void> {
   }
 }
 
+function completionCommand(args: ParsedArgs): void {
+  const [shell] = args.positional
+  if (!shell || !isCompletionShell(shell))
+    die(`usage: relay completion <${COMPLETION_SHELLS.join('|')}>`, 2)
+  const flags = [...BOOL_FLAGS, ...VALUE_FLAGS].sort()
+  process.stdout.write(completionScript(shell, flags))
+}
+
 async function mcpCommand(): Promise<void> {
   const { StdioServerTransport } =
     await import('@modelcontextprotocol/sdk/server/stdio.js')
@@ -522,7 +535,8 @@ const HELP =
   '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
   '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
   '  relay mcp   (stdio MCP server over the same store)\n' +
-  '  relay upgrade   ·   relay --version\n\n' +
+  '  relay upgrade   ·   relay --version\n' +
+  '  relay completion <bash|zsh|fish>   (print a shell completion script)\n\n' +
   `States: ${STATES.join(' → ')} (review = needs QA)\n` +
   'Labels: --label a,b on add/update replaces; --add-label / --rm-label adjust; list --label x filters.\n' +
   'Human inbox: relay list --needs-human   (also --mine for your assigned tasks)\n' +
@@ -566,6 +580,8 @@ async function main(): Promise<void> {
       return syncCommand(args)
     case 'watch':
       return watchCommand(args)
+    case 'completion':
+      return completionCommand(args)
     case 'mcp':
       return mcpCommand()
     case 'ui':

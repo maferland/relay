@@ -332,6 +332,21 @@ describe('tasks CLI', () => {
     expect(stdout.trim()).toMatch(/^(\d+\.\d+\.\d+|dev)$/)
   })
 
+  describe('completion', () => {
+    it.each(['bash', 'zsh', 'fish'])('emits a %s script', async (sh) => {
+      const { stdout, exitCode } = await run(['completion', sh])
+      expect(exitCode).toBe(0)
+      expect(stdout).toContain('relay')
+      expect(stdout).toContain('comment')
+    })
+
+    it('rejects an unknown shell with exit 2', async () => {
+      const { exitCode, stderr } = await run(['completion', 'powershell'])
+      expect(exitCode).toBe(2)
+      expect(stderr).toMatch(/usage: relay completion/)
+    })
+  })
+
   describe('labels', () => {
     it('sets, adjusts, and filters by labels', async () => {
       const { id } = await addTask('labelled', ['--label', 'backend,api'])

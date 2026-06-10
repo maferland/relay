@@ -84,7 +84,22 @@ The same operations are available to agents as MCP tools:
 claude mcp add relay -- relay mcp
 ```
 
-Exposes `add_task`, `list_tasks`, `get_task`, `update_task`, `claim_task` over the same store.
+Exposes `add_task`, `list_tasks`, `get_task`, `update_task`, `claim_task`, `comment_task`,
+`escalate_task`, `resolve_task`, and `sync_task` over the same store.
+
+### Tab completion
+
+`relay completion <bash|zsh|fish>` prints a completion script for subcommands, flags, and state
+values. Load it from your shell config:
+
+```bash
+# zsh — into a dir on your $fpath, e.g.
+relay completion zsh > ~/.zfunc/_relay
+# bash
+relay completion bash > ~/.local/share/bash-completion/completions/relay
+# fish
+relay completion fish > ~/.config/fish/completions/relay.fish
+```
 
 ## Requirements
 
