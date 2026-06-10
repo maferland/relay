@@ -1,4 +1,4 @@
-import type { SqliteTaskStore } from './store.js'
+import { buildTask, type SqliteTaskStore } from './store.js'
 import type { State, Task } from './types.js'
 import { isState } from './types.js'
 
@@ -71,9 +71,18 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-async function readBody(req: Request): Promise<{ to?: string; note?: string }> {
+interface RequestBody {
+  to?: string
+  note?: string
+  title?: string
+  description?: string
+  project?: string
+  assignee?: string
+}
+
+async function readBody(req: Request): Promise<RequestBody> {
   try {
-    return (await req.json()) as { to?: string; note?: string }
+    return (await req.json()) as RequestBody
   } catch {
     return {}
   }
@@ -121,6 +130,30 @@ export function createUiServer(store: SqliteTaskStore, opts: UiServerOptions) {
 
       if (p === '/api/changes') {
         return changes(Number(url.searchParams.get('since') ?? '0'))
+      }
+
+      if (p === '/api/tasks' && req.method === 'POST') {
+        const body = await readBody(req)
+        const title = body.title?.trim()
+        const project = body.project?.trim()
+        if (!title) return json({ error: 'A task title is required' }, 400)
+        if (!project) return json({ error: 'A project is required' }, 400)
+        try {
+          const task = buildTask({
+            title,
+            description: body.description?.trim() || undefined,
+            project,
+            assignee: body.assignee?.trim() || undefined,
+            actor: me,
+          })
+          await store.add(task)
+          return json(adapt(task), 201)
+        } catch (e) {
+          return json(
+            { error: e instanceof Error ? e.message : String(e) },
+            400
+          )
+        }
       }
 
       const match = p.match(
@@ -176,11 +209,4 @@ export function createUiServer(store: SqliteTaskStore, opts: UiServerOptions) {
   })
 
   return server
-}
-
-// build-generated asset (vite → dist/ui); Bun inlines it into the --compile binary as raw text.
-import bundledHtml from '../dist/ui/index.html' with { type: 'text' }
-
-export function loadUiHtml(): string {
-  return bundledHtml as unknown as string
 }

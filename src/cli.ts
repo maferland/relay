@@ -555,17 +555,19 @@ async function mcpCommand(): Promise<void> {
 }
 
 async function uiCommand(args: ParsedArgs): Promise<void> {
-  const mod = await import('./ui-server.js').catch(() => null)
-  if (!mod)
+  // The bundled SPA lives in ui-html (the only module that depends on the build); a missing
+  // build fails this import, which is how we detect "UI not built".
+  const htmlMod = await import('./ui-html.js').catch(() => null)
+  if (!htmlMod)
     die('UI not built. Run `bun run build` (or `bun run build:ui`) first.')
-  const { createUiServer, loadUiHtml } = mod
+  const { createUiServer } = await import('./ui-server.js')
   const me =
     val(args.flags.me) ?? operatorName() ?? resolveActor(val(args.flags.actor))
   const port = args.flags.port ? parseInt(val(args.flags.port)!, 10) : undefined
   const server = createUiServer(new SqliteTaskStore(), {
     me,
     port,
-    html: loadUiHtml(),
+    html: htmlMod.loadUiHtml(),
   })
   const url = `http://localhost:${server.port}`
   process.stderr.write(`relay UI on ${url}  (you = ${me})\n`)
