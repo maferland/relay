@@ -11,6 +11,7 @@ import {
 } from './types.js'
 import { syncLink } from './connectors/index.js'
 import { detectProject, gitContext, openBrowser, resolveActor } from './util.js'
+import { operatorName, readConfig, writeConfig } from './config.js'
 import { upgradeCommand } from './upgrade.js'
 import { maybeNudge } from './update-check.js'
 import { VERSION } from './version.js'
@@ -512,6 +513,27 @@ function completionCommand(args: ParsedArgs): void {
   )
 }
 
+// `relay config set name "<you>"` / `relay config get [name]` / `relay config`.
+function configCommand(args: ParsedArgs): void {
+  const usage = 'usage: relay config set name "<you>" | relay config get [name]'
+  const [action, key, ...rest] = args.positional
+  if (!action || action === 'get') {
+    const config = readConfig()
+    if (!key) {
+      process.stdout.write(JSON.stringify(config, null, 2) + '\n')
+      return
+    }
+    const value = (config as Record<string, unknown>)[key]
+    if (value !== undefined) process.stdout.write(String(value) + '\n')
+    return
+  }
+  if (action !== 'set' || key !== 'name') die(usage, 2)
+  const name = rest.join(' ').trim()
+  if (!name) die(usage, 2)
+  writeConfig({ ...readConfig(), name })
+  process.stderr.write(`Saved name = ${name}\n`)
+}
+
 async function mcpCommand(): Promise<void> {
   const { StdioServerTransport } =
     await import('@modelcontextprotocol/sdk/server/stdio.js')
@@ -524,7 +546,8 @@ async function uiCommand(args: ParsedArgs): Promise<void> {
   if (!mod)
     die('UI not built. Run `bun run build` (or `bun run build:ui`) first.')
   const { createUiServer, loadUiHtml } = mod
-  const me = val(args.flags.me) ?? resolveActor(val(args.flags.actor))
+  const me =
+    val(args.flags.me) ?? operatorName() ?? resolveActor(val(args.flags.actor))
   const port = args.flags.port ? parseInt(val(args.flags.port)!, 10) : undefined
   const server = createUiServer(new SqliteTaskStore(), {
     me,
@@ -552,6 +575,7 @@ const HELP =
   '  relay escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
   '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
   '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
+  '  relay config set name "<you>"   (your operator identity; fixes "unknown")\n' +
   '  relay mcp   (stdio MCP server over the same store)\n' +
   '  relay upgrade   ·   relay --version\n' +
   '  relay completion <bash|zsh|fish> [--install]   (print, or write, a shell completion script)\n\n' +
@@ -600,6 +624,8 @@ async function main(): Promise<void> {
       return watchCommand(args)
     case 'completion':
       return completionCommand(args)
+    case 'config':
+      return configCommand(args)
     case 'mcp':
       return mcpCommand()
     case 'ui':

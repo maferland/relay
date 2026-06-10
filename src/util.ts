@@ -1,6 +1,7 @@
 import { exec, execFileSync } from 'child_process'
 import os from 'os'
 import path from 'path'
+import { operatorName } from './config.js'
 
 export function openBrowser(url: string): void {
   if (process.env.RELAY_NO_OPEN === '1') return
@@ -25,8 +26,16 @@ export function dataDir(): string {
   return process.env.RELAY_DIR ?? path.join(base, 'relay')
 }
 
+// Agents pass RELAY_ACTOR; a human who set `relay config set name` gets that
+// name instead of the bare $USER login, so the timeline stops saying "unknown".
 export function resolveActor(flag?: string): string {
-  return flag ?? process.env.RELAY_ACTOR ?? process.env.USER ?? 'unknown'
+  return (
+    flag ??
+    process.env.RELAY_ACTOR ??
+    operatorName() ??
+    process.env.USER ??
+    'unknown'
+  )
 }
 
 export interface GitContext {
