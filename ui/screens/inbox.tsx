@@ -238,7 +238,8 @@ export function Inbox({
   const mine = free
     .filter(
       (t) =>
-        t.assignee === me && !['blocked', 'review', 'done'].includes(t.state)
+        t.assignee === me &&
+        !['blocked', 'review', 'ready', 'merged'].includes(t.state)
     )
     .sort(oldestFirst)
   const total = escalated.length + blocked.length + review.length + mine.length

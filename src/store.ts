@@ -11,6 +11,22 @@ function validateId(id: string): void {
   }
 }
 
+// Legacy tasks were stored with the terminal state `done`, since renamed to `merged`.
+// Map it on the way out of the db so old rows hydrate into the current State union.
+function migrateLegacyState(state: string): State {
+  return (state === 'done' ? 'merged' : state) as State
+}
+
+function parseRow(data: string): Task {
+  const task = JSON.parse(data) as Task
+  task.state = migrateLegacyState(task.state)
+  for (const event of task.history) {
+    if (event.from) event.from = migrateLegacyState(event.from)
+    if (event.to) event.to = migrateLegacyState(event.to)
+  }
+  return task
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 // Bounded retry past busy_timeout; safe because BEGIN IMMEDIATE commits whole or rolls back.
@@ -84,7 +100,7 @@ function applyChanges(
   const event: TaskEvent = { at: new Date().toISOString() }
   if (meta.actor) event.actor = meta.actor
   if (note) event.note = note
-  // Human checkpoints apply before the state guard so `--state done --tested` works.
+  // Human checkpoints apply before the state guard so `--state merged --tested` works.
   const checks: string[] = []
   if (changes.humanReviewed !== undefined) {
     const next = changes.humanReviewed || undefined
@@ -101,9 +117,9 @@ function applyChanges(
   if (changes.state && changes.state !== task.state) {
     const wasReviewed =
       task.state === 'review' || task.history.some((e) => e.to === 'review')
-    if (changes.state === 'done' && wasReviewed && !task.humanTested) {
+    if (changes.state === 'merged' && wasReviewed && !task.humanTested) {
       throw new Error(
-        'Cannot mark done: this task was reviewed but never human-tested. Pass --tested (or `relay update <id> --tested`) first.'
+        'Cannot mark merged: this task was reviewed but never human-tested. Pass --tested (or `relay update <id> --tested`) first.'
       )
     }
     if (requiresNote(task.state, changes.state) && !note) {
@@ -262,7 +278,7 @@ export class SqliteTaskStore implements TaskStore {
       (where.length ? ` WHERE ${where.join(' AND ')}` : '') +
       ' ORDER BY updated_at DESC, id DESC'
     const rows = this.db.query(sql).all(...params) as Row[]
-    return rows.map((r) => JSON.parse(r.data) as Task)
+    return rows.map((r) => parseRow(r.data))
   }
 
   async update(
@@ -291,7 +307,11 @@ export class SqliteTaskStore implements TaskStore {
         .transaction(() => {
           const task = this.readRow(id)
           if (!task) throw new Error(`Task "${id}" not found`)
-          if (task.state === 'review' || task.state === 'done') {
+          if (
+            task.state === 'review' ||
+            task.state === 'ready' ||
+            task.state === 'merged'
+          ) {
             throw new Error(
               `Task is in '${task.state}'; reopen deliberately with: update ${id} --state doing --note "<why>"`
             )
@@ -393,7 +413,7 @@ export class SqliteTaskStore implements TaskStore {
     const row = this.db
       .query('SELECT data FROM tasks WHERE id = ?')
       .get(id) as Row | null
-    return row ? (JSON.parse(row.data) as Task) : null
+    return row ? parseRow(row.data) : null
   }
 
   // add() must fail on a duplicate id, never clobber an existing task's history.

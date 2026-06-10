@@ -343,22 +343,24 @@ export function App() {
       const updated = await api.transition(task.id, transition.to, note)
       patchTask(updated)
       const verb =
-        transition.to === 'done'
-          ? 'passed QA'
-          : transition.to === 'blocked'
-            ? 'blocked'
-            : task.state === 'review' && transition.to === 'todo'
-              ? 'sent back'
-              : 'moved to ' + STATE_META[transition.to].label.toLowerCase()
+        transition.to === 'merged'
+          ? 'merged'
+          : transition.to === 'ready'
+            ? 'passed QA'
+            : transition.to === 'blocked'
+              ? 'blocked'
+              : task.state === 'review' && transition.to === 'todo'
+                ? 'sent back'
+                : 'moved to ' + STATE_META[transition.to].label.toLowerCase()
       pushToast({
         kind:
-          transition.to === 'done'
+          transition.to === 'merged' || transition.to === 'ready'
             ? 'success'
             : transition.to === 'blocked'
               ? 'block'
               : 'update',
         icon:
-          transition.to === 'done'
+          transition.to === 'merged' || transition.to === 'ready'
             ? 'check'
             : transition.to === 'blocked'
               ? 'alert'
@@ -427,7 +429,8 @@ export function App() {
     t.needsHuman ||
     t.state === 'blocked' ||
     (t.state === 'review' && t.assignee === me) ||
-    (t.assignee === me && !['blocked', 'review', 'done'].includes(t.state))
+    (t.assignee === me &&
+      !['blocked', 'review', 'ready', 'merged'].includes(t.state))
   const needsYouCount = tasks.filter(isNeedsYou).length
   const urgentCount = tasks.filter(
     (t) => t.needsHuman || t.state === 'blocked'

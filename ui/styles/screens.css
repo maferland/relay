@@ -420,7 +420,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.row.is-done .row-title {
+.row.is-merged .row-title {
   color: var(--text-muted);
 }
 .row-meta {
@@ -814,10 +814,10 @@
 .tl-item.is-block .tl-note-tag {
   color: var(--st-blocked-fg);
 }
-.tl-item.is-done .tl-node {
-  border-color: var(--st-done-bd);
-  background: var(--st-done-bg);
-  color: var(--st-done-fg);
+.tl-item.is-merged .tl-node {
+  border-color: var(--st-merged-bd);
+  background: var(--st-merged-bg);
+  color: var(--st-merged-fg);
 }
 .mini-trans {
   display: inline-flex;
@@ -972,8 +972,8 @@
   color: var(--st-doing-fg);
 }
 .toast.success .t-ic {
-  background: var(--st-done-bg);
-  color: var(--st-done-fg);
+  background: var(--st-merged-bg);
+  color: var(--st-merged-fg);
 }
 .toast.block .t-ic {
   background: var(--st-blocked-bg);
@@ -1012,9 +1012,9 @@
   color: var(--text-faint);
 }
 .empty.allclear .e-ic {
-  background: var(--st-done-bg);
-  border-color: var(--st-done-bd);
-  color: var(--st-done-fg);
+  background: var(--st-merged-bg);
+  border-color: var(--st-merged-bd);
+  color: var(--st-merged-fg);
 }
 .empty h3 {
   font-size: var(--fs-lg);

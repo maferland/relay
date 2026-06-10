@@ -104,9 +104,9 @@ describe('SqliteTaskStore', () => {
   })
 
   it('throws updating a missing task', async () => {
-    await expect(store.update('task-x', { state: 'done' }, {})).rejects.toThrow(
-      /not found/
-    )
+    await expect(
+      store.update('task-x', { state: 'merged' }, {})
+    ).rejects.toThrow(/not found/)
   })
 
   it('refuses to add a task whose id already exists (never clobbers history)', async () => {
@@ -152,13 +152,17 @@ describe('SqliteTaskStore', () => {
       expect(claimed.assignee).toBe('w1')
     })
 
-    it('refuses to claim a task in review or done', async () => {
+    it('refuses to claim a task in review, ready, or merged', async () => {
       await store.add(makeTask('task-r', { state: 'review' }))
-      await store.add(makeTask('task-d', { state: 'done' }))
+      await store.add(makeTask('task-rd', { state: 'ready' }))
+      await store.add(makeTask('task-m', { state: 'merged' }))
       await expect(store.claim('task-r', { assignee: 'w1' })).rejects.toThrow(
         /reopen/
       )
-      await expect(store.claim('task-d', { assignee: 'w1' })).rejects.toThrow(
+      await expect(store.claim('task-rd', { assignee: 'w1' })).rejects.toThrow(
+        /reopen/
+      )
+      await expect(store.claim('task-m', { assignee: 'w1' })).rejects.toThrow(
         /reopen/
       )
     })
@@ -277,7 +281,7 @@ describe('SqliteTaskStore', () => {
     it('filters by since (updatedAt >=)', async () => {
       await store.update(
         'task-c',
-        { state: 'done', humanTested: true },
+        { state: 'merged', humanTested: true },
         { actor: 'w1' }
       )
       const since = (await store.get('task-c'))!.updatedAt
@@ -426,7 +430,7 @@ describe('SqliteTaskStore', () => {
       expect(t.history.at(-1)!.to).toBeUndefined()
     })
 
-    it('refuses to mark a reviewed task done unless human-tested', async () => {
+    it('refuses to mark a reviewed task merged unless human-tested', async () => {
       await store.add(makeTask('task-h3'))
       await store.update(
         'task-h3',
@@ -434,31 +438,42 @@ describe('SqliteTaskStore', () => {
         { actor: 'w', note: 'ready' }
       )
       await expect(
-        store.update('task-h3', { state: 'done' }, { actor: 'lead' })
+        store.update('task-h3', { state: 'merged' }, { actor: 'lead' })
       ).rejects.toThrow(/never human-tested/)
     })
 
-    it('lets a never-reviewed task reach done without a test', async () => {
-      await store.add(makeTask('task-h3b'))
-      await store.update('task-h3b', { state: 'doing' }, { actor: 'w' })
-      const done = await store.update(
-        'task-h3b',
-        { state: 'done' },
-        { actor: 'w' }
-      )
-      expect(done.state).toBe('done')
-      expect(done.humanTested).toBeUndefined()
-    })
-
-    it('allows done when tested in the same call', async () => {
-      await store.add(makeTask('task-h4', { state: 'review' }))
-      const done = await store.update(
-        'task-h4',
-        { state: 'done', humanTested: true },
+    it('lets a reviewed task reach ready without a test', async () => {
+      await store.add(makeTask('task-h3a', { state: 'review' }))
+      const ready = await store.update(
+        'task-h3a',
+        { state: 'ready' },
         { actor: 'lead' }
       )
-      expect(done.state).toBe('done')
-      expect(done.humanTested).toBe(true)
+      expect(ready.state).toBe('ready')
+      expect(ready.humanTested).toBeUndefined()
+    })
+
+    it('lets a never-reviewed task reach merged without a test', async () => {
+      await store.add(makeTask('task-h3b'))
+      await store.update('task-h3b', { state: 'doing' }, { actor: 'w' })
+      const merged = await store.update(
+        'task-h3b',
+        { state: 'merged' },
+        { actor: 'w' }
+      )
+      expect(merged.state).toBe('merged')
+      expect(merged.humanTested).toBeUndefined()
+    })
+
+    it('allows merged when tested in the same call', async () => {
+      await store.add(makeTask('task-h4', { state: 'review' }))
+      const merged = await store.update(
+        'task-h4',
+        { state: 'merged', humanTested: true },
+        { actor: 'lead' }
+      )
+      expect(merged.state).toBe('merged')
+      expect(merged.humanTested).toBe(true)
     })
 
     it('keeps tested set when a task goes back to review', async () => {
@@ -485,6 +500,28 @@ describe('SqliteTaskStore', () => {
       expect(cleared.history.at(-1)).toMatchObject({
         note: 'cleared human-tested',
       })
+    })
+  })
+
+  describe('legacy state migration', () => {
+    // Tasks stored before the rename carry the terminal state `done`; it must
+    // hydrate as `merged` so old data keeps working under the current State union.
+    it('hydrates a stored legacy `done` task as `merged`', async () => {
+      const legacy = {
+        ...makeTask('task-legacy'),
+        state: 'done',
+        history: [
+          { at: new Date().toISOString(), actor: 'w', to: 'done', note: 'qa' },
+        ],
+      } as unknown as Task
+      await store.add(legacy)
+
+      const got = await store.get('task-legacy')
+      expect(got!.state).toBe('merged')
+      expect(got!.history.at(-1)!.to).toBe('merged')
+
+      const listed = await store.list({ project: 'demo' })
+      expect(listed.find((t) => t.id === 'task-legacy')!.state).toBe('merged')
     })
   })
 })

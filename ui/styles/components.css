@@ -185,8 +185,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--st-done-fg);
-  box-shadow: 0 0 0 3px var(--st-done-bg);
+  background: var(--st-merged-fg);
+  box-shadow: 0 0 0 3px var(--st-merged-bg);
 }
 .sync.syncing .dot {
   background: var(--st-doing-fg);
@@ -266,10 +266,15 @@
   background: var(--st-review-bg);
   border-color: var(--st-review-bd);
 }
-.badge-done {
-  color: var(--st-done-fg);
-  background: var(--st-done-bg);
-  border-color: var(--st-done-bd);
+.badge-ready {
+  color: var(--st-ready-fg);
+  background: var(--st-ready-bg);
+  border-color: var(--st-ready-bd);
+}
+.badge-merged {
+  color: var(--st-merged-fg);
+  background: var(--st-merged-bg);
+  border-color: var(--st-merged-bd);
 }
 .badge-blocked {
   color: var(--st-blocked-fg);

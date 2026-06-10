@@ -44,15 +44,18 @@ RELAY_ACTOR=worker-1 relay update task-1a2b3c4d --state review --note "ready for
 
 # coordinator polls the handoff queue, then QAs
 relay list --state review
-relay update task-1a2b3c4d --state done --note "QA passed"
+relay update task-1a2b3c4d --state ready --note "QA passed"   # awaiting the human's merge
+# …the human merges it (a reviewed task needs --tested to reach merged):
+relay update task-1a2b3c4d --state merged --tested --note "shipped"
 # …or send it back (a note is required):
-relay update task-1a2b3c4d --state todo --note "logout 500s — see step 3"
+relay update task-1a2b3c4d --state todo --note "logout 500s - see step 3"
 
 relay show task-1a2b3c4d                     # full back-and-forth history
 ```
 
-States flow `todo → doing → review → done`, with `blocked` to the side. `review` is the
-QA-handoff signal. Any send-back (a backward move or `blocked`) requires a `--note`, so the next
+States flow `todo → doing → review → ready → merged`, with `blocked` to the side. `review` is
+the QA-handoff signal; `ready` means QA'd and waiting on the human's review and merge; `merged`
+is terminal. Any send-back (a backward move or `blocked`) requires a `--note`, so the next
 actor always knows why.
 
 Tag work with free-form labels (orthogonal to state) and filter on them, for review granularity
