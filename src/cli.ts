@@ -5,13 +5,22 @@ import {
   type State,
   type Task,
   type TaskChanges,
+  type TaskLink,
 } from './types.js'
+import { syncLink } from './connectors/index.js'
 import { detectProject, gitContext, openBrowser, resolveActor } from './util.js'
 import { upgradeCommand } from './upgrade.js'
 import { maybeNudge } from './update-check.js'
 import { VERSION } from './version.js'
 
-const BOOL_FLAGS = new Set(['all', 'json', 'needs-human', 'mine', 'help'])
+const BOOL_FLAGS = new Set([
+  'all',
+  'json',
+  'needs-human',
+  'mine',
+  'help',
+  'remote',
+])
 const VALUE_FLAGS = new Set([
   'desc',
   'plan',
@@ -31,6 +40,7 @@ const VALUE_FLAGS = new Set([
   'label',
   'add-label',
   'rm-label',
+  'pr',
 ])
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -327,6 +337,60 @@ async function commentCommand(args: ParsedArgs): Promise<void> {
   printTask(task, !!args.flags.json)
 }
 
+// "owner/repo#123" → its github PR url.
+function prUrl(ref: string): string | undefined {
+  const m = ref.match(/^(.+)#(\d+)$/)
+  return m ? `https://github.com/${m[1]}/pull/${m[2]}` : undefined
+}
+
+async function linkCommand(args: ParsedArgs): Promise<void> {
+  const pr = val(args.flags.pr)
+  const [id, system, kind, ref] = args.positional
+  let link: TaskLink | undefined
+  if (pr) link = { system: 'github', kind: 'pr', ref: pr, url: prUrl(pr) }
+  else if (system && kind && ref) link = { system, kind, ref }
+  if (!id || !link)
+    die(
+      'usage: relay link <id> --pr owner/repo#123   |   relay link <id> <system> <kind> <ref>',
+      2
+    )
+  const task = await new SqliteTaskStore()
+    .update(
+      id,
+      { addLink: link },
+      {
+        actor: resolveActor(val(args.flags.actor)),
+        note: `linked ${link.system}:${link.ref}`,
+      }
+    )
+    .catch((e: Error) => die(e.message))
+  printTask(task, !!args.flags.json)
+}
+
+async function syncCommand(args: ParsedArgs): Promise<void> {
+  const [id] = args.positional
+  if (!id) die('usage: relay sync <id>', 2)
+  const store = new SqliteTaskStore()
+  const task = await store.get(id).catch((e: Error) => die(e.message))
+  if (!task) die(`Task "${id}" not found.`)
+  if (!task.links?.length) {
+    process.stderr.write('No links to sync.\n')
+    return
+  }
+  const actor = resolveActor(val(args.flags.actor))
+  let current = task
+  let changes = 0
+  for (const link of task.links) {
+    const updated = await syncLink(store, id, link, actor)
+    if (updated) {
+      current = updated
+      changes++
+    }
+  }
+  process.stderr.write(`Synced ${id}: ${changes} change(s).\n`)
+  printTask(current, !!args.flags.json)
+}
+
 function printChange(task: Task, json: boolean): void {
   if (json) {
     process.stdout.write(JSON.stringify(task, null, 2) + '\n')
@@ -361,10 +425,22 @@ async function watchCommand(args: ParsedArgs): Promise<void> {
   if (id) {
     // Follow one task until its next change (optionally only when it reaches --state).
     const until = requireState(val(args.flags.state))
+    const remote = !!args.flags.remote
+    const actor = resolveActor(val(args.flags.actor))
     const start = await store.get(id).catch((e: Error) => die(e.message))
     if (!start) die(`Task "${id}" not found.`, 2)
     const baseline = val(args.flags.since) ?? start.updatedAt
     for (;;) {
+      if (remote) {
+        const t = await store.get(id)
+        for (const link of t?.links ?? []) {
+          const changed = await syncLink(store, id, link, actor)
+          if (changed) {
+            printChange(changed, json)
+            return
+          }
+        }
+      }
       const task = await store.get(id)
       if (
         task &&
@@ -440,6 +516,8 @@ const HELP =
   '  relay comment <id> "<message>"   (leave a note on the thread, no state change)\n' +
   '  relay watch <id> [--state S] [--timeout sec]   (block until it changes; run in background)\n' +
   '  relay watch --state review [--project P|--all]  (block until a task enters that queue)\n' +
+  '  relay link <id> --pr owner/repo#123   (link a GitHub PR; needs gh)\n' +
+  '  relay sync <id>   ·   relay watch <id> --remote   (pull PR status onto the task)\n' +
   '  relay escalate <id> --note "<what you need>"   (flag: needs a human)\n' +
   '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
   '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
@@ -482,6 +560,10 @@ async function main(): Promise<void> {
       return claimCommand(args)
     case 'comment':
       return commentCommand(args)
+    case 'link':
+      return linkCommand(args)
+    case 'sync':
+      return syncCommand(args)
     case 'watch':
       return watchCommand(args)
     case 'mcp':

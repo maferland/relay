@@ -19,6 +19,13 @@ export interface UiTask {
   worktree?: string
   needsHuman?: boolean
   labels?: string[]
+  links?: {
+    system: string
+    kind: string
+    ref: string
+    url?: string
+    lastStatus?: string
+  }[]
   assignee?: string
   createdBy?: string
   createdAt: number
