@@ -24,6 +24,16 @@ const NOTE_LABEL: Record<string, string> = {
   resolve: 'resolved',
 }
 
+// PR link refs look like "owner/repo#123".
+function repoFromPrRef(ref: string): string | null {
+  const m = ref.match(/^(.+)#\d+$/)
+  return m ? m[1] : null
+}
+function prNumber(ref: string): string | null {
+  const m = ref.match(/#(\d+)$/)
+  return m ? m[1] : null
+}
+
 function TransitionPill({
   from,
   to,
@@ -269,6 +279,13 @@ export function Detail({
     task.state === 'blocked' ||
     (task.state === 'review' && task.assignee === me)
   const mono = { fontSize: 'var(--fs-xs)' } as const
+  const prLinks = task.links?.filter((l) => l.kind === 'pr') ?? []
+  const otherLinks = task.links?.filter((l) => l.kind !== 'pr') ?? []
+  const branchRepo = prLinks.map((l) => repoFromPrRef(l.ref)).find(Boolean)
+  const branchUrl =
+    task.branch && branchRepo
+      ? `https://github.com/${branchRepo}/tree/${task.branch}`
+      : undefined
 
   return (
     <div className="page page-wide">
@@ -309,6 +326,26 @@ export function Detail({
             <div className="d-badges">
               <MoveMenu task={task} onAction={onAction} />
               <ProjectTag project={task.project} />
+              {prLinks.map((l) => {
+                const num = prNumber(l.ref)
+                const label = num ? `PR #${num}` : l.ref
+                const text = l.lastStatus ? `${label} · ${l.lastStatus}` : label
+                return l.url ? (
+                  <a
+                    key={l.ref}
+                    className="pr-chip"
+                    href={l.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Icon name="branch" size={13} /> {text}
+                  </a>
+                ) : (
+                  <span key={l.ref} className="pr-chip">
+                    <Icon name="branch" size={13} /> {text}
+                  </span>
+                )
+              })}
               <span className="meta">
                 <Icon name="clock" size={13} /> updated{' '}
                 {relTime(task.updatedAt, now)}
@@ -383,10 +420,10 @@ export function Detail({
                   </span>
                 </MetaRow>
               ) : null}
-              {task.links?.length ? (
+              {otherLinks.length ? (
                 <MetaRow icon="branch" k="links">
                   <span className="card-labels">
-                    {task.links.map((l) => {
+                    {otherLinks.map((l) => {
                       const text = l.lastStatus
                         ? `${l.ref} · ${l.lastStatus}`
                         : l.ref
@@ -412,9 +449,21 @@ export function Detail({
               ) : null}
               {task.branch ? (
                 <MetaRow icon="branch" k="branch">
-                  <span className="mono" style={mono}>
-                    {task.branch}
-                  </span>
+                  {branchUrl ? (
+                    <a
+                      className="mono branch-link"
+                      style={mono}
+                      href={branchUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {task.branch}
+                    </a>
+                  ) : (
+                    <span className="mono" style={mono}>
+                      {task.branch}
+                    </span>
+                  )}
                 </MetaRow>
               ) : (
                 <MetaRow icon="branch" k="branch">
