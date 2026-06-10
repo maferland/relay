@@ -228,6 +228,7 @@ export function App() {
   const { route, navigate } = useRouter()
   const view = route.screen
   const openId = route.taskId
+  const proj = route.board.proj // the active repo lens, shared by inbox + board
   const [modal, setModal] = useState<{
     task: UiTask
     transition: Transition
@@ -308,14 +309,36 @@ export function App() {
     setToasts((prev) => prev.filter((x) => x.id !== id))
 
   function openTask(id: string) {
-    navigate({ screen: 'detail', taskId: id, board: DEFAULT_FILTERS })
+    // Carry the repo lens through the detour so Back returns to the same filtered view.
+    navigate({
+      screen: 'detail',
+      taskId: id,
+      board: { ...DEFAULT_FILTERS, proj },
+    })
     document.querySelector('.scroll')?.scrollTo(0, 0)
   }
   function goInbox() {
-    navigate({ screen: 'inbox', taskId: null, board: DEFAULT_FILTERS })
+    // Keep the repo lens when switching to the inbox; drop the board-only filters.
+    navigate({
+      screen: 'inbox',
+      taskId: null,
+      board: { ...DEFAULT_FILTERS, proj },
+    })
   }
   function goBoard(board: BoardFilters) {
     navigate({ screen: 'board', taskId: null, board })
+  }
+  // Sidebar repo click: filter the current screen in place rather than always jumping to the board.
+  function selectRepo(next: string | null) {
+    if (view === 'inbox') {
+      navigate({
+        screen: 'inbox',
+        taskId: null,
+        board: { ...DEFAULT_FILTERS, proj: next },
+      })
+    } else {
+      goBoard({ ...lastBoardFilters.current, proj: next })
+    }
   }
 
   function patchTask(updated: UiTask) {
@@ -425,14 +448,16 @@ export function App() {
     }
   }
 
+  // The repo lens scopes the inbox and the left-nav counts; the board filters itself by route.board.proj.
+  const scopedTasks = proj ? tasks.filter((t) => t.project === proj) : tasks
   const isNeedsYou = (t: UiTask) =>
     t.needsHuman ||
     t.state === 'blocked' ||
     (t.state === 'review' && t.assignee === me) ||
     (t.assignee === me &&
       !['blocked', 'review', 'ready', 'merged'].includes(t.state))
-  const needsYouCount = tasks.filter(isNeedsYou).length
-  const urgentCount = tasks.filter(
+  const needsYouCount = scopedTasks.filter(isNeedsYou).length
+  const urgentCount = scopedTasks.filter(
     (t) => t.needsHuman || t.state === 'blocked'
   ).length
   const syncSecs = Math.max(0, Math.round((now - lastSync) / 1000))
@@ -462,14 +487,27 @@ export function App() {
           </button>
           <button
             className={`nav-item ${view === 'board' || view === 'detail' ? 'is-active' : ''}`}
-            onClick={() => goBoard(lastBoardFilters.current)}
+            onClick={() => goBoard({ ...lastBoardFilters.current, proj })}
           >
             <Icon name="board" size={17} /> Board
-            <span className="nav-count">{tasks.length}</span>
+            <span className="nav-count">{scopedTasks.length}</span>
           </button>
         </nav>
         <div className="nav-sec">Repos</div>
         <div className="side-projects">
+          <button
+            className={`nav-item ${!proj ? 'is-active' : ''}`}
+            style={{ padding: '6px 10px' }}
+            onClick={() => selectRepo(null)}
+          >
+            <Icon
+              name="folder"
+              size={15}
+              style={{ color: 'var(--text-faint)' }}
+            />
+            <span style={{ fontSize: 'var(--fs-xs)' }}>All repos</span>
+            <span className="nav-count">{tasks.length}</span>
+          </button>
           {projects.map((p) => {
             const c = tasks.filter((x) => x.project === p).length
             const b = tasks.filter(
@@ -478,9 +516,9 @@ export function App() {
             return (
               <button
                 key={p}
-                className="nav-item"
+                className={`nav-item ${proj === p ? 'is-active' : ''}`}
                 style={{ padding: '6px 10px' }}
-                onClick={() => goBoard({ ...DEFAULT_FILTERS, proj: p })}
+                onClick={() => selectRepo(proj === p ? null : p)}
               >
                 <Icon
                   name="folder"
@@ -535,10 +573,14 @@ export function App() {
                 : 'Task'}
           </h1>
           {view === 'inbox' && (
-            <span className="sub">your attention queue</span>
+            <span className="sub">
+              {proj ? `${proj} · your queue` : 'your attention queue'}
+            </span>
           )}
           {view === 'board' && (
-            <span className="sub">all work across {projects.length} repos</span>
+            <span className="sub">
+              {proj ? proj : `all work across ${projects.length} repos`}
+            </span>
           )}
           <div className="spacer" />
           <div
@@ -563,7 +605,7 @@ export function App() {
         <div className="scroll">
           {view === 'inbox' && (
             <Inbox
-              tasks={tasks}
+              tasks={scopedTasks}
               actors={actors}
               me={me}
               now={now}
@@ -592,7 +634,7 @@ export function App() {
               actors={actors}
               me={me}
               now={now}
-              onBack={() => goBoard(lastBoardFilters.current)}
+              onBack={() => goBoard({ ...lastBoardFilters.current, proj })}
               onAction={onAction}
               onComment={onComment}
               onResolve={onResolve}

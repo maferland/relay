@@ -15,6 +15,14 @@ describe('parseLocation', () => {
     })
   })
 
+  test('/?project=<p> → inbox scoped to a repo', () => {
+    expect(parseLocation('/', '?project=relay')).toEqual({
+      screen: 'inbox',
+      taskId: null,
+      board: { ...DEFAULT_FILTERS, proj: 'relay' },
+    })
+  })
+
   test('bare /board → board with default filters', () => {
     expect(parseLocation('/board', '')).toEqual({
       screen: 'board',
@@ -95,6 +103,16 @@ describe('stateToLocation', () => {
     ).toEqual({ pathname: '/', search: '' })
   })
 
+  test('inbox with a repo lens → /?project=<p>', () => {
+    expect(
+      stateToLocation({
+        screen: 'inbox',
+        taskId: null,
+        board: { ...DEFAULT_FILTERS, proj: 'relay' },
+      })
+    ).toEqual({ pathname: '/', search: '?project=relay' })
+  })
+
   test('board with no filters → bare /board', () => {
     expect(
       stateToLocation({
@@ -129,6 +147,11 @@ describe('stateToLocation', () => {
 describe('round-trips', () => {
   const cases: RouteState[] = [
     { screen: 'inbox', taskId: null, board: { ...DEFAULT_FILTERS } },
+    {
+      screen: 'inbox',
+      taskId: null,
+      board: { ...DEFAULT_FILTERS, proj: 'relay' },
+    },
     { screen: 'board', taskId: null, board: { ...DEFAULT_FILTERS } },
     {
       screen: 'board',
