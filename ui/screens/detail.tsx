@@ -250,6 +250,42 @@ function MetaRow({
   )
 }
 
+function CheckItem({
+  label,
+  set,
+  stale,
+  pending,
+  onToggle,
+}: {
+  label: string
+  set: boolean
+  stale: boolean
+  pending: boolean
+  onToggle: () => void
+}) {
+  const state = set ? (stale ? 'stale' : 'done') : pending ? 'pending' : 'todo'
+  const icon = set ? 'check' : pending ? 'alert' : 'dot'
+  const color =
+    state === 'done'
+      ? 'var(--st-done-fg)'
+      : state === 'todo'
+        ? 'var(--text-faint)'
+        : 'var(--st-review-fg)'
+  const suffix =
+    state === 'pending' ? 'needed' : state === 'stale' ? 'stale' : ''
+  return (
+    <button
+      type="button"
+      className={`check-item is-${state}`}
+      onClick={onToggle}
+    >
+      <Icon name={icon} size={13} style={{ color }} />
+      <span className="ci-name">{label}</span>
+      {suffix && <span className="ci-suffix">{suffix}</span>}
+    </button>
+  )
+}
+
 interface DetailProps {
   task: UiTask | undefined
   actors: Record<string, Actor>
@@ -448,41 +484,26 @@ export function Detail({
                 )
               })}
               {showCheckpoints && (
-                <div className="checkpoint-row">
+                <div className="checklist">
                   <span className="ck-label">Checks</span>
-                  <button
-                    type="button"
-                    className={`ck-toggle${task.humanReviewed ? ' is-set' : ''}${reviewedStale ? ' is-stale' : ''}`}
-                    onClick={() =>
+                  <CheckItem
+                    label="Reviewed"
+                    set={!!task.humanReviewed}
+                    stale={reviewedStale}
+                    pending={false}
+                    onToggle={() =>
                       onCheckpoint(task, { reviewed: !task.humanReviewed })
                     }
-                  >
-                    <Icon
-                      name={task.humanReviewed ? 'check' : 'dot'}
-                      size={12}
-                    />
-                    Reviewed{reviewedStale ? ' · stale' : ''}
-                  </button>
-                  <button
-                    type="button"
-                    className={`ck-toggle${task.humanTested ? ' is-set' : ''}${testedStale ? ' is-stale' : ''}${gatedReady ? ' is-pending' : ''}`}
-                    onClick={() =>
+                  />
+                  <CheckItem
+                    label="Tested"
+                    set={!!task.humanTested}
+                    stale={testedStale}
+                    pending={gatedReady}
+                    onToggle={() =>
                       onCheckpoint(task, { tested: !task.humanTested })
                     }
-                  >
-                    <Icon
-                      name={
-                        task.humanTested
-                          ? 'check'
-                          : gatedReady
-                            ? 'alert'
-                            : 'dot'
-                      }
-                      size={12}
-                    />
-                    Tested
-                    {testedStale ? ' · stale' : gatedReady ? ' · needed' : ''}
-                  </button>
+                  />
                 </div>
               )}
             </div>
