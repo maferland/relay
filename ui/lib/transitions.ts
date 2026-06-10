@@ -7,16 +7,24 @@ export function lastNote(task: UiTask): UiEvent | null {
   return null
 }
 
-// Why a task needs attention: prefer the note from the transition into its
-// current state, so a later plain comment can't masquerade as the reason.
+// Why a task needs attention: the escalation reason when it needs a human, else
+// the note from the transition into its current state. Never a plain comment.
 export function attentionNote(task: UiTask): UiEvent | null {
-  if (task.state === 'review' || task.state === 'blocked') {
+  const find = (pred: (e: UiEvent) => boolean): UiEvent | null => {
     for (let i = task.history.length - 1; i >= 0; i--) {
-      const e = task.history[i]
-      if (e.to === task.state && e.note) return e
+      if (task.history[i].note && pred(task.history[i])) return task.history[i]
     }
+    return null
   }
-  return lastNote(task)
+  if (task.needsHuman) {
+    const escalated = find((e) => e.kind === 'escalate')
+    if (escalated) return escalated
+  }
+  if (task.state === 'review' || task.state === 'blocked') {
+    const handoff = find((e) => e.to === task.state)
+    if (handoff) return handoff
+  }
+  return find((e) => e.kind !== 'comment')
 }
 
 export const STATE_META: Record<

@@ -6,6 +6,7 @@ export interface UiEvent {
   from: State | null
   to: State | null
   note: string
+  kind: 'comment' | 'escalate' | 'resolve' | null
 }
 
 export interface UiTask {

@@ -195,7 +195,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
     },
     async ({ id, note, actor }): Promise<CallToolResult> => {
       try {
-        const task = await store.update(id, {}, { actor, note })
+        const task = await store.comment(id, { actor, note })
         return ok(`Commented on ${summarize(task)}`)
       } catch (e) {
         return err(e)

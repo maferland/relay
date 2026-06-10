@@ -38,6 +38,7 @@ function adapt(task: Task) {
       from: e.from ?? null,
       to: e.to ?? null,
       note: e.note ?? '',
+      kind: e.kind ?? null,
     })),
   }
 }
@@ -153,7 +154,7 @@ export function createUiServer(store: SqliteTaskStore, opts: UiServerOptions) {
             if (!body.note?.trim())
               return json({ error: 'A comment message is required' }, 400)
             return json(
-              adapt(await store.update(id, {}, { actor: me, note: body.note }))
+              adapt(await store.comment(id, { actor: me, note: body.note }))
             )
           }
           return json(

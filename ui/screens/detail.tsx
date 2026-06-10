@@ -12,14 +12,22 @@ import { clockTime, dayLabel, relTime } from '../lib/time.ts'
 import { attentionNote, transitionsFor } from '../lib/transitions.ts'
 import type { Actor, State, Transition, UiEvent, UiTask } from '../lib/types.ts'
 
+const NOTE_LABEL: Record<string, string> = {
+  comment: 'commented',
+  escalate: 'escalated',
+  resolve: 'resolved',
+}
+
 function TransitionPill({
   from,
   to,
+  kind,
 }: {
   from: State | null
   to: State | null
+  kind?: UiEvent['kind']
 }) {
-  // Note-only event (escalate / resolve / reassign): no state change.
+  // Note-only event (comment / escalate / resolve): no state change.
   if (!from && !to) {
     return (
       <span className="mini-trans">
@@ -27,7 +35,9 @@ function TransitionPill({
           className="badge-dot"
           style={{ background: 'var(--text-faint)' }}
         />{' '}
-        <span style={{ color: 'var(--text-faint)' }}>note</span>
+        <span style={{ color: 'var(--text-faint)' }}>
+          {(kind && NOTE_LABEL[kind]) || 'note'}
+        </span>
       </span>
     )
   }
@@ -73,7 +83,12 @@ function eventIcon(ev: UiEvent): string {
   if (ev.to === 'blocked') return 'alert'
   if (ev.to === 'done') return 'check'
   if (ev.from === 'review' && ev.to === 'todo') return 'arrowLeft'
-  if (!ev.from && !ev.to) return 'dot' // note-only (escalate/resolve)
+  if (!ev.from && !ev.to) {
+    if (ev.kind === 'comment') return 'send'
+    if (ev.kind === 'escalate') return 'alert'
+    if (ev.kind === 'resolve') return 'check'
+    return 'dot'
+  }
   if (!ev.from) return 'plus' // creation
   return 'arrowRight'
 }
@@ -124,7 +139,7 @@ function Timeline({
                       {a.name}
                       {a.kind === 'human' ? ' (you)' : ''}
                     </span>
-                    <TransitionPill from={ev.from} to={ev.to} />
+                    <TransitionPill from={ev.from} to={ev.to} kind={ev.kind} />
                     <span className="tl-time">{clockTime(ev.at)}</span>
                   </div>
                   {ev.note && <div className="tl-note">{ev.note}</div>}
