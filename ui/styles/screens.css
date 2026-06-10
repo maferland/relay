@@ -625,37 +625,44 @@
   font-size: var(--fs-xs);
   color: var(--st-review-fg);
 }
-.checkpoint-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 2px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
-}
-.ck-chips {
+.checkpoint-row {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
 }
-.ck-chip {
+.checkpoint-row .ck-label {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  margin-right: 2px;
+}
+.ck-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
+  gap: 5px;
+  padding: 3px 10px;
   border-radius: var(--r-pill);
   border: 1px solid var(--border);
   background: var(--surface-2);
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-size: var(--fs-xs);
-  white-space: nowrap;
+  font-weight: 550;
+  cursor: pointer;
+  transition: all var(--speed);
 }
-.ck-chip.is-set {
+.ck-toggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.ck-toggle.is-set {
   border-color: var(--st-done-bd);
   background: var(--st-done-bg);
   color: var(--st-done-fg);
 }
-.ck-chip.is-stale {
+.ck-toggle.is-stale {
   border-color: var(--st-review-bd);
   background: var(--st-review-bg);
   color: var(--st-review-fg);

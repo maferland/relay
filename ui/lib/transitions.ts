@@ -150,7 +150,7 @@ export function humanActions(state: State): Transition[] {
       return [
         {
           to: 'merged',
-          label: 'Approve & merge',
+          label: 'Mark merged',
           icon: 'check',
           primary: true,
           good: true,
