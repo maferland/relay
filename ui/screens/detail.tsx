@@ -295,6 +295,8 @@ export function Detail({
   const wentThroughReview =
     task.state === 'review' || task.history.some((e) => e.to === 'review')
   const needsTestToMerge = wentThroughReview && !task.humanTested
+  // A ready task whose merge is gated on testing: lead with "Mark tested", not a dead merge button.
+  const gatedReady = task.state === 'ready' && needsTestToMerge
   const reviewedStale =
     !!task.humanReviewed &&
     task.reviewedAt != null &&
@@ -409,34 +411,40 @@ export function Detail({
                   Resolve (hand back to agents)
                 </Button>
               )}
+              {gatedReady && (
+                <Button
+                  variant="accent"
+                  size="md"
+                  icon="check"
+                  onClick={() => onCheckpoint(task, { tested: true })}
+                >
+                  Mark tested
+                </Button>
+              )}
               {actions.map((t, i) => {
-                const blockMerge = t.to === 'merged' && needsTestToMerge
+                // While gated, the merge button is a quiet locked secondary, not a loud dead CTA.
+                const lockedMerge = t.to === 'merged' && gatedReady
                 return (
-                  <Fragment key={t.to + String(i)}>
-                    <Button
-                      variant={
-                        t.primary
+                  <Button
+                    key={t.to + String(i)}
+                    variant={
+                      lockedMerge
+                        ? 'default'
+                        : t.primary
                           ? t.good
                             ? 'accent'
                             : 'primary'
                           : t.danger
                             ? 'dangerout'
                             : 'default'
-                      }
-                      size="md"
-                      icon={t.icon}
-                      disabled={blockMerge}
-                      onClick={() => onAction(task, t)}
-                    >
-                      {t.label}
-                    </Button>
-                    {blockMerge && (
-                      <p className="drail-hint">
-                        <Icon name="alert" size={12} /> Mark tested first to
-                        record the merge.
-                      </p>
-                    )}
-                  </Fragment>
+                    }
+                    size="md"
+                    icon={t.icon}
+                    disabled={lockedMerge}
+                    onClick={() => onAction(task, t)}
+                  >
+                    {t.label}
+                  </Button>
                 )
               })}
               {showCheckpoints && (
@@ -457,13 +465,23 @@ export function Detail({
                   </button>
                   <button
                     type="button"
-                    className={`ck-toggle${task.humanTested ? ' is-set' : ''}${testedStale ? ' is-stale' : ''}`}
+                    className={`ck-toggle${task.humanTested ? ' is-set' : ''}${testedStale ? ' is-stale' : ''}${gatedReady ? ' is-pending' : ''}`}
                     onClick={() =>
                       onCheckpoint(task, { tested: !task.humanTested })
                     }
                   >
-                    <Icon name={task.humanTested ? 'check' : 'dot'} size={12} />
-                    Tested{testedStale ? ' · stale' : ''}
+                    <Icon
+                      name={
+                        task.humanTested
+                          ? 'check'
+                          : gatedReady
+                            ? 'alert'
+                            : 'dot'
+                      }
+                      size={12}
+                    />
+                    Tested
+                    {testedStale ? ' · stale' : gatedReady ? ' · needed' : ''}
                   </button>
                 </div>
               )}

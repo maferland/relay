@@ -617,14 +617,6 @@
   gap: 8px;
   border-bottom: 1px solid var(--border);
 }
-.drail-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: var(--fs-xs);
-  color: var(--st-review-fg);
-}
 .checkpoint-row {
   display: flex;
   align-items: center;
@@ -662,10 +654,14 @@
   background: var(--st-done-bg);
   color: var(--st-done-fg);
 }
-.ck-toggle.is-stale {
+.ck-toggle.is-stale,
+.ck-toggle.is-pending {
   border-color: var(--st-review-bd);
   background: var(--st-review-bg);
   color: var(--st-review-fg);
+}
+.ck-toggle.is-pending {
+  font-weight: 600;
 }
 .dmeta {
   display: flex;
@@ -689,6 +685,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 .dmeta-row .val {
   color: var(--text);
