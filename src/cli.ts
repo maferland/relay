@@ -579,7 +579,7 @@ const HELP =
   '  relay list [--state S] [--assignee X] [--project P|--all] [--since ISO] [--json]\n' +
   '  relay show <id> [--json]\n' +
   '  relay update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
-  '  relay update <id> [--reviewed|--clear-reviewed] [--tested|--clear-tested]   (human checkpoints; reviewed tasks need --tested for done)\n' +
+  '  relay update <id> [--reviewed|--clear-reviewed] [--tested|--clear-tested]   (human checkpoints; reviewed tasks need --tested for merged)\n' +
   '  relay claim <id> [--assignee X]\n' +
   '  relay comment <id> "<message>"   (leave a note on the thread, no state change)\n' +
   '  relay watch <id> [--state S] [--timeout sec]   (block until it changes; run in background)\n' +

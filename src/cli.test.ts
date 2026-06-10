@@ -101,29 +101,40 @@ describe('tasks CLI', () => {
     ) as Task[]
     expect(list.map((t) => t.id)).toContain(id)
 
-    const done = JSON.parse(
+    const ready = JSON.parse(
+      (
+        await run(
+          ['update', id, '--state', 'ready', '--note', 'QA passed', '--json'],
+          'lead'
+        )
+      ).stdout
+    ) as Task
+    expect(ready.state).toBe('ready')
+
+    const merged = JSON.parse(
       (
         await run(
           [
             'update',
             id,
             '--state',
-            'done',
+            'merged',
             '--tested',
             '--note',
-            'QA passed',
+            'shipped',
             '--json',
           ],
           'lead'
         )
       ).stdout
     ) as Task
-    expect(done.state).toBe('done')
-    expect(done.history.map((e) => e.to)).toEqual([
+    expect(merged.state).toBe('merged')
+    expect(merged.history.map((e) => e.to)).toEqual([
       'todo',
       'doing',
       'review',
-      'done',
+      'ready',
+      'merged',
     ])
   })
 
@@ -321,7 +332,7 @@ describe('tasks CLI', () => {
       'update',
       'task-missing',
       '--state',
-      'done',
+      'merged',
     ])
     expect(exitCode).toBe(1)
     expect(stderr).toMatch(/not found/)
@@ -414,17 +425,17 @@ describe('tasks CLI', () => {
       expect(updated.humanTested).toBe(true)
     })
 
-    it('blocks done without --tested, allows it with', async () => {
+    it('blocks merged without --tested, allows it with', async () => {
       const { id } = await addTask('x', ['--assignee', 'w1'])
       await run(['update', id, '--state', 'review', '--note', 'ready'], 'w1')
-      const blocked = await run(['update', id, '--state', 'done'])
+      const blocked = await run(['update', id, '--state', 'merged'])
       expect(blocked.exitCode).toBe(1)
       expect(blocked.stderr).toMatch(/never human-tested/)
       const ok = JSON.parse(
-        (await run(['update', id, '--state', 'done', '--tested', '--json']))
+        (await run(['update', id, '--state', 'merged', '--tested', '--json']))
           .stdout
       ) as Task
-      expect(ok.state).toBe('done')
+      expect(ok.state).toBe('merged')
       expect(ok.humanTested).toBe(true)
     })
 

@@ -51,6 +51,12 @@ describe('parseLocation', () => {
     ).toEqual(['review'])
   })
 
+  test('parses the ready and merged states in lifecycle order', () => {
+    expect(parseLocation('/board', '?state=merged,ready').board.states).toEqual(
+      ['ready', 'merged']
+    )
+  })
+
   test('falls back to any for an unknown since window', () => {
     expect(parseLocation('/board', '?since=decade').board.since).toBe('any')
   })

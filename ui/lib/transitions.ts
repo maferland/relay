@@ -34,11 +34,18 @@ export const STATE_META: Record<
   todo: { label: 'Todo', v: 'todo', order: 0 },
   doing: { label: 'Doing', v: 'doing', order: 1 },
   review: { label: 'Review', v: 'review', order: 2 },
-  done: { label: 'Done', v: 'done', order: 3 },
-  blocked: { label: 'Blocked', v: 'blocked', order: 4 },
+  ready: { label: 'Ready', v: 'ready', order: 3 },
+  merged: { label: 'Merged', v: 'merged', order: 4 },
+  blocked: { label: 'Blocked', v: 'blocked', order: 5 },
 }
 
-export const STATE_FLOW: State[] = ['todo', 'doing', 'review', 'done']
+export const STATE_FLOW: State[] = [
+  'todo',
+  'doing',
+  'review',
+  'ready',
+  'merged',
+]
 
 export function transitionsFor(state: State): Transition[] {
   switch (state) {
@@ -67,7 +74,7 @@ export function transitionsFor(state: State): Transition[] {
     case 'review':
       return [
         {
-          to: 'done',
+          to: 'ready',
           label: 'Pass QA',
           icon: 'check',
           primary: true,
@@ -82,6 +89,23 @@ export function transitionsFor(state: State): Transition[] {
         },
         { to: 'blocked', label: 'Block', icon: 'alert', requiresNote: true },
       ]
+    case 'ready':
+      return [
+        {
+          to: 'merged',
+          label: 'Merge',
+          icon: 'check',
+          primary: true,
+          good: true,
+        },
+        {
+          to: 'doing',
+          label: 'Send back',
+          icon: 'arrowLeft',
+          requiresNote: true,
+          danger: true,
+        },
+      ]
     case 'blocked':
       return [
         {
@@ -92,7 +116,7 @@ export function transitionsFor(state: State): Transition[] {
         },
         { to: 'todo', label: 'Send to backlog', icon: 'arrowLeft' },
       ]
-    case 'done':
+    case 'merged':
       return [
         { to: 'doing', label: 'Reopen', icon: 'sync', requiresNote: true },
       ]
@@ -101,16 +125,23 @@ export function transitionsFor(state: State): Transition[] {
   }
 }
 
-const ORDER: Record<string, number> = { todo: 0, doing: 1, review: 2, done: 3 }
+const ORDER: Record<string, number> = {
+  todo: 0,
+  doing: 1,
+  review: 2,
+  ready: 3,
+  merged: 4,
+}
 
 // Transition between two arbitrary states (drag-to-move on the Kanban).
 export function transitionMeta(from: State, to: State): Transition {
   const backward = from in ORDER && to in ORDER && ORDER[to] < ORDER[from]
-  const requiresNote = to === 'blocked' || backward || from === 'done'
+  const requiresNote = to === 'blocked' || backward || from === 'merged'
   let label: string
   if (to === 'blocked') label = 'Block task'
   else if (backward) label = 'Send back to ' + STATE_META[to].label
-  else if (to === 'done') label = from === 'review' ? 'Pass QA' : 'Mark done'
+  else if (to === 'merged') label = 'Merge'
+  else if (to === 'ready') label = from === 'review' ? 'Pass QA' : 'Mark ready'
   else if (from === 'blocked') label = 'Unblock to ' + STATE_META[to].label
   else label = 'Move to ' + STATE_META[to].label
   return {
@@ -118,14 +149,14 @@ export function transitionMeta(from: State, to: State): Transition {
     from,
     requiresNote,
     danger: to === 'blocked' || backward,
-    good: to === 'done',
+    good: to === 'merged' || to === 'ready',
     label,
     icon:
       to === 'blocked'
         ? 'alert'
         : backward
           ? 'arrowLeft'
-          : to === 'done'
+          : to === 'merged' || to === 'ready'
             ? 'check'
             : 'arrowRight',
   }
