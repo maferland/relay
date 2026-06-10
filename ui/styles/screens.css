@@ -925,6 +925,34 @@
 .note-input::placeholder {
   color: var(--text-faint);
 }
+.create-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.create-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.field-input {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: var(--fs-sm);
+  font-family: var(--font-sans);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+}
+.field-input:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--focus) 22%, transparent);
+}
+.field-input::placeholder {
+  color: var(--text-faint);
+}
 .note-hint {
   margin-top: 7px;
   font-size: var(--fs-xs);
