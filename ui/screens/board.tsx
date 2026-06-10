@@ -13,7 +13,14 @@ const SINCE_OPTS: { k: SinceWindow; label: string; ms: number }[] = [
   { k: '7d', label: 'Last 7 days', ms: 7 * 24 * 3600e3 },
 ]
 
-const BOARD_STATES: State[] = ['todo', 'doing', 'review', 'done', 'blocked']
+const BOARD_STATES: State[] = [
+  'todo',
+  'doing',
+  'review',
+  'ready',
+  'merged',
+  'blocked',
+]
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return <kbd className="kbd">{children}</kbd>
@@ -286,7 +293,7 @@ export function Board({
                   <div
                     key={t.id}
                     className={`row state-${t.state} ${t.state === 'blocked' ? 'is-blocked' : ''} ${
-                      t.state === 'done' ? 'is-done' : ''
+                      t.state === 'merged' ? 'is-merged' : ''
                     } ${sel === idx ? 'is-selected' : ''}`}
                     onClick={() => onOpen(t.id)}
                     onMouseEnter={() => setSel(idx)}

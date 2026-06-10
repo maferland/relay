@@ -23,7 +23,14 @@ export interface RouteState {
   board: BoardFilters
 }
 
-const BOARD_STATES: State[] = ['todo', 'doing', 'review', 'done', 'blocked']
+const BOARD_STATES: State[] = [
+  'todo',
+  'doing',
+  'review',
+  'ready',
+  'merged',
+  'blocked',
+]
 
 export const DEFAULT_FILTERS: BoardFilters = {
   proj: null,

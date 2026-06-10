@@ -7,7 +7,7 @@ import {
 } from '../lib/transitions.ts'
 import type { Actor, State, Transition, UiTask } from '../lib/types.ts'
 
-const FLOW_COLS: State[] = ['todo', 'doing', 'review', 'done']
+const FLOW_COLS: State[] = ['todo', 'doing', 'review', 'ready', 'merged']
 
 interface KanbanProps {
   tasks: UiTask[]
@@ -95,7 +95,8 @@ export function Kanban({ tasks, actors, me, onOpen, onAction }: KanbanProps) {
       todo: [],
       doing: [],
       review: [],
-      done: [],
+      ready: [],
+      merged: [],
       blocked: [],
     }
     for (const t of tasks) (m[t.state] || (m[t.state] = [])).push(t)

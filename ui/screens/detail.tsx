@@ -91,7 +91,7 @@ function TransitionPill({
 
 function eventKind(ev: UiEvent): string {
   if (ev.to === 'blocked') return 'is-block'
-  if (ev.to === 'done') return 'is-done'
+  if (ev.to === 'merged') return 'is-merged'
   if (ev.from === 'review' && ev.to === 'todo') return 'is-reject'
   return ''
 }
@@ -102,7 +102,7 @@ function eventNoteLabel(ev: UiEvent): string | undefined {
 }
 function eventIcon(ev: UiEvent): string {
   if (ev.to === 'blocked') return 'alert'
-  if (ev.to === 'done') return 'check'
+  if (ev.to === 'merged') return 'check'
   if (ev.from === 'review' && ev.to === 'todo') return 'arrowLeft'
   if (!ev.from && !ev.to) {
     if (ev.kind === 'comment') return 'send'

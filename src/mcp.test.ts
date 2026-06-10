@@ -64,13 +64,13 @@ describe('MCP tools', () => {
     expect(rejected.text).toMatch(/note is required/)
   })
 
-  it('refuses to claim a done task', async () => {
+  it('refuses to claim a merged task', async () => {
     const added = await call('add_task', { title: 'x', project: 'demo' })
     const id = added.text.match(/task-[a-f0-9]+/)![0]
     await call('update_task', { id, state: 'doing', note: 'go' })
     await call('update_task', {
       id,
-      state: 'done',
+      state: 'merged',
       humanTested: true,
       note: 'shipped',
     })

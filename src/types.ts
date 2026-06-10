@@ -1,5 +1,12 @@
-// `review` is the QA-handoff signal a coordinator polls for.
-export const STATES = ['todo', 'doing', 'review', 'done', 'blocked'] as const
+// `review` is the QA-handoff signal a coordinator polls for; `ready` waits on the human's merge.
+export const STATES = [
+  'todo',
+  'doing',
+  'review',
+  'ready',
+  'merged',
+  'blocked',
+] as const
 export type State = (typeof STATES)[number]
 
 export function isState(value: string): value is State {
@@ -10,7 +17,8 @@ const RANK: Record<State, number> = {
   todo: 0,
   doing: 1,
   review: 2,
-  done: 3,
+  ready: 3,
+  merged: 4,
   blocked: -1,
 }
 
