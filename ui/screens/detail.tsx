@@ -15,7 +15,7 @@ import {
   StateBadge,
 } from '../components/ui.tsx'
 import { clockTime, dayLabel, relTime } from '../lib/time.ts'
-import { attentionNote, transitionsFor } from '../lib/transitions.ts'
+import { attentionNote, humanActions } from '../lib/transitions.ts'
 import type { Actor, State, Transition, UiEvent, UiTask } from '../lib/types.ts'
 
 const NOTE_LABEL: Record<string, string> = {
@@ -259,6 +259,10 @@ interface DetailProps {
   onAction: (task: UiTask, t: Transition) => void
   onComment: (task: UiTask, note: string) => void
   onResolve: (task: UiTask) => void
+  onCheckpoint: (
+    task: UiTask,
+    flags: { reviewed?: boolean; tested?: boolean }
+  ) => void
 }
 
 export function Detail({
@@ -270,9 +274,10 @@ export function Detail({
   onAction,
   onComment,
   onResolve,
+  onCheckpoint,
 }: DetailProps) {
   if (!task) return null
-  const trans = transitionsFor(task.state)
+  const actions = humanActions(task.state)
   const note = attentionNote(task)
   const showBanner =
     task.needsHuman ||
@@ -286,6 +291,23 @@ export function Detail({
     task.branch && branchRepo
       ? `https://github.com/${branchRepo}/tree/${task.branch}`
       : undefined
+  // Mirror the store's merge guard: a task that went through review can't merge until human-tested.
+  const wentThroughReview =
+    task.state === 'review' || task.history.some((e) => e.to === 'review')
+  const needsTestToMerge = wentThroughReview && !task.humanTested
+  const reviewedStale =
+    !!task.humanReviewed &&
+    task.reviewedAt != null &&
+    task.updatedAt > task.reviewedAt
+  const testedStale =
+    !!task.humanTested &&
+    task.testedAt != null &&
+    task.updatedAt > task.testedAt
+  const showCheckpoints =
+    task.state === 'review' ||
+    task.state === 'ready' ||
+    task.humanReviewed ||
+    task.humanTested
 
   return (
     <div className="page page-wide">
@@ -387,25 +409,63 @@ export function Detail({
                   Resolve (hand back to agents)
                 </Button>
               )}
-              {trans.map((t, i) => (
-                <Button
-                  key={t.to + String(i)}
-                  variant={
-                    t.primary
-                      ? t.good
-                        ? 'accent'
-                        : 'primary'
-                      : t.danger
-                        ? 'dangerout'
-                        : 'default'
-                  }
-                  size="md"
-                  icon={t.icon}
-                  onClick={() => onAction(task, t)}
-                >
-                  {t.label}
-                </Button>
-              ))}
+              {actions.map((t, i) => {
+                const blockMerge = t.to === 'merged' && needsTestToMerge
+                return (
+                  <Button
+                    key={t.to + String(i)}
+                    variant={
+                      t.primary
+                        ? t.good
+                          ? 'accent'
+                          : 'primary'
+                        : t.danger
+                          ? 'dangerout'
+                          : 'default'
+                    }
+                    size="md"
+                    icon={t.icon}
+                    disabled={blockMerge}
+                    title={
+                      blockMerge
+                        ? 'Mark tested before you can merge'
+                        : undefined
+                    }
+                    onClick={() => onAction(task, t)}
+                  >
+                    {t.label}
+                  </Button>
+                )
+              })}
+              {needsTestToMerge && task.state === 'ready' && (
+                <p className="drail-hint">
+                  <Icon name="alert" size={12} /> Mark tested to enable merge.
+                </p>
+              )}
+              {showCheckpoints && (
+                <div className="checkpoint-actions">
+                  <Button
+                    variant={task.humanReviewed ? 'accent' : 'default'}
+                    size="sm"
+                    icon={task.humanReviewed ? 'check' : 'user'}
+                    onClick={() =>
+                      onCheckpoint(task, { reviewed: !task.humanReviewed })
+                    }
+                  >
+                    {task.humanReviewed ? 'Reviewed' : 'Mark reviewed'}
+                  </Button>
+                  <Button
+                    variant={task.humanTested ? 'accent' : 'default'}
+                    size="sm"
+                    icon="check"
+                    onClick={() =>
+                      onCheckpoint(task, { tested: !task.humanTested })
+                    }
+                  >
+                    {task.humanTested ? 'Tested' : 'Mark tested'}
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="dmeta">
               <MetaRow icon="folder" k="repo">
@@ -413,6 +473,24 @@ export function Detail({
                   {task.project}
                 </span>
               </MetaRow>
+              {showCheckpoints && (
+                <MetaRow icon="check" k="checkpoints">
+                  <span className="ck-chips">
+                    <span
+                      className={`ck-chip${task.humanReviewed ? ' is-set' : ''}${reviewedStale ? ' is-stale' : ''}`}
+                    >
+                      <Icon name="user" size={11} /> reviewed
+                      {reviewedStale ? ' · stale' : ''}
+                    </span>
+                    <span
+                      className={`ck-chip${task.humanTested ? ' is-set' : ''}${testedStale ? ' is-stale' : ''}`}
+                    >
+                      <Icon name="check" size={11} /> tested
+                      {testedStale ? ' · stale' : ''}
+                    </span>
+                  </span>
+                </MetaRow>
+              )}
               {task.labels?.length ? (
                 <MetaRow icon="tag" k="labels">
                   <span className="card-labels">

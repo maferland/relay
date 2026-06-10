@@ -58,6 +58,18 @@ export async function resolve(id: string, note: string): Promise<UiTask> {
   return (await jsonOrThrow(res)) as UiTask
 }
 
+export async function setCheckpoint(
+  id: string,
+  flags: { reviewed?: boolean; tested?: boolean }
+): Promise<UiTask> {
+  const res = await fetch(`/api/tasks/${encodeURIComponent(id)}/checkpoint`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(flags),
+  })
+  return (await jsonOrThrow(res)) as UiTask
+}
+
 export async function comment(id: string, note: string): Promise<UiTask> {
   const res = await fetch(`/api/tasks/${encodeURIComponent(id)}/comment`, {
     method: 'POST',

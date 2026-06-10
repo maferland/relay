@@ -617,6 +617,49 @@
   gap: 8px;
   border-bottom: 1px solid var(--border);
 }
+.drail-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--st-review-fg);
+}
+.checkpoint-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.ck-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ck-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.ck-chip.is-set {
+  border-color: var(--st-done-bd);
+  background: var(--st-done-bg);
+  color: var(--st-done-fg);
+}
+.ck-chip.is-stale {
+  border-color: var(--st-review-bd);
+  background: var(--st-review-bg);
+  color: var(--st-review-fg);
+}
 .dmeta {
   display: flex;
   flex-direction: column;
