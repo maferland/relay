@@ -26,7 +26,7 @@ export function dataDir(): string {
 }
 
 export function resolveActor(flag?: string): string {
-  return flag ?? process.env.RELAY_ACTOR ?? 'unknown'
+  return flag ?? process.env.RELAY_ACTOR ?? process.env.USER ?? 'unknown'
 }
 
 export interface GitContext {
