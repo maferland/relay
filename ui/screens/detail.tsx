@@ -15,7 +15,7 @@ import {
   StateBadge,
 } from '../components/ui.tsx'
 import { clockTime, dayLabel, relTime } from '../lib/time.ts'
-import { attentionNote, transitionsFor } from '../lib/transitions.ts'
+import { attentionNote, humanActions } from '../lib/transitions.ts'
 import type { Actor, State, Transition, UiEvent, UiTask } from '../lib/types.ts'
 
 const NOTE_LABEL: Record<string, string> = {
@@ -250,6 +250,45 @@ function MetaRow({
   )
 }
 
+// A checkbox-style bullet that owns its flag: click to toggle. Outstanding (gating) pending
+// checks get a calm-amber emphasis; done checks click to clear.
+function CheckItem({
+  label,
+  set,
+  stale,
+  outstanding,
+  onToggle,
+}: {
+  label: string
+  set: boolean
+  stale: boolean
+  outstanding: boolean
+  onToggle: () => void
+}) {
+  const tone = set
+    ? stale
+      ? 'stale'
+      : 'done'
+    : outstanding
+      ? 'pending'
+      : 'todo'
+  return (
+    <button
+      type="button"
+      className={`check-item is-${tone}`}
+      onClick={onToggle}
+    >
+      <Icon
+        name={set ? 'checkSquare' : 'square'}
+        size={16}
+        className="ci-box"
+      />
+      <span className="ci-name">{label}</span>
+      {stale && <span className="ci-stale">stale</span>}
+    </button>
+  )
+}
+
 interface DetailProps {
   task: UiTask | undefined
   actors: Record<string, Actor>
@@ -259,6 +298,10 @@ interface DetailProps {
   onAction: (task: UiTask, t: Transition) => void
   onComment: (task: UiTask, note: string) => void
   onResolve: (task: UiTask) => void
+  onCheckpoint: (
+    task: UiTask,
+    flags: { reviewed?: boolean; tested?: boolean }
+  ) => void
 }
 
 export function Detail({
@@ -270,9 +313,10 @@ export function Detail({
   onAction,
   onComment,
   onResolve,
+  onCheckpoint,
 }: DetailProps) {
   if (!task) return null
-  const trans = transitionsFor(task.state)
+  const actions = humanActions(task.state)
   const note = attentionNote(task)
   const showBanner =
     task.needsHuman ||
@@ -286,6 +330,25 @@ export function Detail({
     task.branch && branchRepo
       ? `https://github.com/${branchRepo}/tree/${task.branch}`
       : undefined
+  // Mirror the store's merge guard: a task that went through review can't merge until human-tested.
+  const wentThroughReview =
+    task.state === 'review' || task.history.some((e) => e.to === 'review')
+  const needsTestToMerge = wentThroughReview && !task.humanTested
+  // A ready task whose merge is gated on testing: lead with "Mark tested", not a dead merge button.
+  const gatedReady = task.state === 'ready' && needsTestToMerge
+  const reviewedStale =
+    !!task.humanReviewed &&
+    task.reviewedAt != null &&
+    task.updatedAt > task.reviewedAt
+  const testedStale =
+    !!task.humanTested &&
+    task.testedAt != null &&
+    task.updatedAt > task.testedAt
+  const showCheckpoints =
+    task.state === 'review' ||
+    task.state === 'ready' ||
+    task.humanReviewed ||
+    task.humanTested
 
   return (
     <div className="page page-wide">
@@ -387,25 +450,52 @@ export function Detail({
                   Resolve (hand back to agents)
                 </Button>
               )}
-              {trans.map((t, i) => (
-                <Button
-                  key={t.to + String(i)}
-                  variant={
-                    t.primary
-                      ? t.good
-                        ? 'accent'
-                        : 'primary'
-                      : t.danger
-                        ? 'dangerout'
-                        : 'default'
-                  }
-                  size="md"
-                  icon={t.icon}
-                  onClick={() => onAction(task, t)}
-                >
-                  {t.label}
-                </Button>
-              ))}
+              {showCheckpoints && (
+                <div className="checklist">
+                  <span className="ck-label">Checks</span>
+                  <CheckItem
+                    label="Reviewed"
+                    set={!!task.humanReviewed}
+                    stale={reviewedStale}
+                    outstanding={false}
+                    onToggle={() =>
+                      onCheckpoint(task, { reviewed: !task.humanReviewed })
+                    }
+                  />
+                  <CheckItem
+                    label="Tested"
+                    set={!!task.humanTested}
+                    stale={testedStale}
+                    outstanding={gatedReady}
+                    onToggle={() =>
+                      onCheckpoint(task, { tested: !task.humanTested })
+                    }
+                  />
+                </div>
+              )}
+              {actions.map((t, i) => {
+                const blockMerge = t.to === 'merged' && gatedReady
+                return (
+                  <Button
+                    key={t.to + String(i)}
+                    variant={
+                      t.primary
+                        ? t.good
+                          ? 'accent'
+                          : 'primary'
+                        : t.danger
+                          ? 'dangerout'
+                          : 'default'
+                    }
+                    size="md"
+                    icon={t.icon}
+                    disabled={blockMerge}
+                    onClick={() => onAction(task, t)}
+                  >
+                    {t.label}
+                  </Button>
+                )
+              })}
             </div>
             <div className="dmeta">
               <MetaRow icon="folder" k="repo">

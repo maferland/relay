@@ -590,6 +590,32 @@ export function App() {
     }
   }
 
+  async function onCheckpoint(
+    task: UiTask,
+    flags: { reviewed?: boolean; tested?: boolean }
+  ) {
+    try {
+      const updated = await api.setCheckpoint(task.id, flags)
+      patchTask(updated)
+      const set = flags.reviewed ?? flags.tested
+      const label = flags.reviewed !== undefined ? 'reviewed' : 'tested'
+      pushToast({
+        kind: 'success',
+        icon: 'check',
+        title: set ? `Marked ${label}` : `Cleared ${label}`,
+        desc: task.title,
+        taskId: task.id,
+      })
+    } catch (e) {
+      pushToast({
+        kind: 'block',
+        icon: 'alert',
+        title: "Couldn't update checkpoint",
+        desc: e instanceof Error ? e.message : String(e),
+      })
+    }
+  }
+
   // The repo lens scopes the inbox and the left-nav counts; the board filters itself by route.board.proj.
   const scopedTasks = proj ? tasks.filter((t) => t.project === proj) : tasks
   const isNeedsYou = (t: UiTask) =>
@@ -788,6 +814,7 @@ export function App() {
               onAction={onAction}
               onComment={onComment}
               onResolve={onResolve}
+              onCheckpoint={onCheckpoint}
             />
           )}
         </div>
