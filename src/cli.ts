@@ -1,3 +1,5 @@
+import fs from 'fs'
+import path from 'path'
 import { buildTask, SqliteTaskStore } from './store.js'
 import {
   isState,
@@ -14,8 +16,10 @@ import { maybeNudge } from './update-check.js'
 import { VERSION } from './version.js'
 import {
   completionScript,
+  completionTarget,
   COMPLETION_SHELLS,
   isCompletionShell,
+  reloadHint,
 } from './completion.js'
 
 const BOOL_FLAGS = new Set([
@@ -25,6 +29,7 @@ const BOOL_FLAGS = new Set([
   'mine',
   'help',
   'remote',
+  'install',
 ])
 const VALUE_FLAGS = new Set([
   'desc',
@@ -489,9 +494,22 @@ async function watchCommand(args: ParsedArgs): Promise<void> {
 function completionCommand(args: ParsedArgs): void {
   const [shell] = args.positional
   if (!shell || !isCompletionShell(shell))
-    die(`usage: relay completion <${COMPLETION_SHELLS.join('|')}>`, 2)
+    die(
+      `usage: relay completion <${COMPLETION_SHELLS.join('|')}> [--install]`,
+      2
+    )
   const flags = [...BOOL_FLAGS, ...VALUE_FLAGS].sort()
-  process.stdout.write(completionScript(shell, flags))
+  const script = completionScript(shell, flags)
+  if (!args.flags.install) {
+    process.stdout.write(script)
+    return
+  }
+  const target = completionTarget(shell)
+  fs.mkdirSync(path.dirname(target), { recursive: true })
+  fs.writeFileSync(target, script)
+  process.stderr.write(
+    `Wrote ${shell} completions to ${target}\n${reloadHint(shell, target)}\n`
+  )
 }
 
 async function mcpCommand(): Promise<void> {
@@ -536,7 +554,7 @@ const HELP =
   '  relay ui [--me <name>] [--port N]   (local web UI — the human inbox)\n' +
   '  relay mcp   (stdio MCP server over the same store)\n' +
   '  relay upgrade   ·   relay --version\n' +
-  '  relay completion <bash|zsh|fish>   (print a shell completion script)\n\n' +
+  '  relay completion <bash|zsh|fish> [--install]   (print, or write, a shell completion script)\n\n' +
   `States: ${STATES.join(' → ')} (review = needs QA)\n` +
   'Labels: --label a,b on add/update replaces; --add-label / --rm-label adjust; list --label x filters.\n' +
   'Human inbox: relay list --needs-human   (also --mine for your assigned tasks)\n' +

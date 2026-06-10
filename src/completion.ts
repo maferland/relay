@@ -1,3 +1,5 @@
+import os from 'os'
+import path from 'path'
 import { STATES } from './types.js'
 
 const COMMANDS: [string, string][] = [
@@ -23,6 +25,29 @@ export type CompletionShell = (typeof COMPLETION_SHELLS)[number]
 
 export function isCompletionShell(s: string): s is CompletionShell {
   return (COMPLETION_SHELLS as readonly string[]).includes(s)
+}
+
+// Where each shell auto-loads a user's completions from (XDG-aware). fish and
+// bash pick these up on their own; zsh only does if the dir is on $fpath.
+export function completionTarget(shell: CompletionShell): string {
+  const home = os.homedir()
+  if (shell === 'fish') {
+    const base = process.env.XDG_CONFIG_HOME ?? path.join(home, '.config')
+    return path.join(base, 'fish', 'completions', 'relay.fish')
+  }
+  const data = process.env.XDG_DATA_HOME ?? path.join(home, '.local', 'share')
+  if (shell === 'bash')
+    return path.join(data, 'bash-completion', 'completions', 'relay')
+  return path.join(data, 'zsh', 'site-functions', '_relay')
+}
+
+// How to make a freshly-installed script take effect, per shell.
+export function reloadHint(shell: CompletionShell, target: string): string {
+  if (shell === 'fish') return 'Restart fish or run `exec fish` to load it.'
+  if (shell === 'bash')
+    return 'Restart bash; bash-completion auto-loads from this dir.'
+  const dir = path.dirname(target)
+  return `Add \`fpath=(${dir} $fpath)\` before \`compinit\` in ~/.zshrc, then restart zsh.`
 }
 
 // Emit a completion script for the given shell. Flags come from the CLI so the

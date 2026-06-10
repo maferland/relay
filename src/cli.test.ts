@@ -18,9 +18,13 @@ describe('tasks CLI', () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  async function run(args: string[], actor = 'tester') {
+  async function run(
+    args: string[],
+    actor = 'tester',
+    extraEnv: Record<string, string> = {}
+  ) {
     const proc = Bun.spawn(['bun', CLI, ...args], {
-      env: { ...process.env, RELAY_DIR: dir, RELAY_ACTOR: actor },
+      env: { ...process.env, RELAY_DIR: dir, RELAY_ACTOR: actor, ...extraEnv },
       stdout: 'pipe',
       stderr: 'pipe',
     })
@@ -344,6 +348,23 @@ describe('tasks CLI', () => {
       const { exitCode, stderr } = await run(['completion', 'powershell'])
       expect(exitCode).toBe(2)
       expect(stderr).toMatch(/usage: relay completion/)
+    })
+
+    it.each([
+      ['fish', ['fish', 'completions', 'relay.fish']],
+      ['bash', ['bash-completion', 'completions', 'relay']],
+      ['zsh', ['zsh', 'site-functions', '_relay']],
+    ])('--install writes the %s script to disk', async (sh, segments) => {
+      const { stdout, stderr, exitCode } = await run(
+        ['completion', sh, '--install'],
+        'tester',
+        { XDG_CONFIG_HOME: dir, XDG_DATA_HOME: dir }
+      )
+      expect(exitCode).toBe(0)
+      expect(stdout).toBe('') // script goes to disk, not stdout
+      expect(stderr).toContain('Wrote')
+      const target = path.join(dir, ...(segments as string[]))
+      expect(fs.readFileSync(target, 'utf8')).toContain('relay')
     })
   })
 
