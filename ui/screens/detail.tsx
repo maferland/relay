@@ -250,38 +250,42 @@ function MetaRow({
   )
 }
 
+// A checkbox-style bullet that owns its flag: click to toggle. Outstanding (gating) pending
+// checks get a calm-amber emphasis; done checks click to clear.
 function CheckItem({
   label,
   set,
   stale,
-  pending,
+  outstanding,
   onToggle,
 }: {
   label: string
   set: boolean
   stale: boolean
-  pending: boolean
+  outstanding: boolean
   onToggle: () => void
 }) {
-  const state = set ? (stale ? 'stale' : 'done') : pending ? 'pending' : 'todo'
-  const icon = set ? 'check' : pending ? 'alert' : 'dot'
-  const color =
-    state === 'done'
-      ? 'var(--st-done-fg)'
-      : state === 'todo'
-        ? 'var(--text-faint)'
-        : 'var(--st-review-fg)'
-  const suffix =
-    state === 'pending' ? 'needed' : state === 'stale' ? 'stale' : ''
+  const tone = set
+    ? stale
+      ? 'stale'
+      : 'done'
+    : outstanding
+      ? 'pending'
+      : 'todo'
   return (
     <button
       type="button"
-      className={`check-item is-${state}`}
+      className={`check-item is-${tone}`}
       onClick={onToggle}
     >
-      <Icon name={icon} size={13} style={{ color }} />
+      <Icon
+        name={set ? 'checkSquare' : 'square'}
+        size={16}
+        className="ci-box"
+      />
       <span className="ci-name">{label}</span>
-      {suffix && <span className="ci-suffix">{suffix}</span>}
+      {stale && <span className="ci-suffix">stale</span>}
+      {!set && <span className="ci-cta">Mark {label.toLowerCase()}</span>}
     </button>
   )
 }
@@ -447,42 +451,6 @@ export function Detail({
                   Resolve (hand back to agents)
                 </Button>
               )}
-              {gatedReady && (
-                <Button
-                  variant="accent"
-                  size="md"
-                  icon="check"
-                  onClick={() => onCheckpoint(task, { tested: true })}
-                >
-                  Mark tested
-                </Button>
-              )}
-              {actions.map((t, i) => {
-                // While gated, the merge button is a quiet locked secondary, not a loud dead CTA.
-                const lockedMerge = t.to === 'merged' && gatedReady
-                return (
-                  <Button
-                    key={t.to + String(i)}
-                    variant={
-                      lockedMerge
-                        ? 'default'
-                        : t.primary
-                          ? t.good
-                            ? 'accent'
-                            : 'primary'
-                          : t.danger
-                            ? 'dangerout'
-                            : 'default'
-                    }
-                    size="md"
-                    icon={t.icon}
-                    disabled={lockedMerge}
-                    onClick={() => onAction(task, t)}
-                  >
-                    {t.label}
-                  </Button>
-                )
-              })}
               {showCheckpoints && (
                 <div className="checklist">
                   <span className="ck-label">Checks</span>
@@ -490,7 +458,7 @@ export function Detail({
                     label="Reviewed"
                     set={!!task.humanReviewed}
                     stale={reviewedStale}
-                    pending={false}
+                    outstanding={false}
                     onToggle={() =>
                       onCheckpoint(task, { reviewed: !task.humanReviewed })
                     }
@@ -499,13 +467,36 @@ export function Detail({
                     label="Tested"
                     set={!!task.humanTested}
                     stale={testedStale}
-                    pending={gatedReady}
+                    outstanding={gatedReady}
                     onToggle={() =>
                       onCheckpoint(task, { tested: !task.humanTested })
                     }
                   />
                 </div>
               )}
+              {actions.map((t, i) => {
+                const blockMerge = t.to === 'merged' && gatedReady
+                return (
+                  <Button
+                    key={t.to + String(i)}
+                    variant={
+                      t.primary
+                        ? t.good
+                          ? 'accent'
+                          : 'primary'
+                        : t.danger
+                          ? 'dangerout'
+                          : 'default'
+                    }
+                    size="md"
+                    icon={t.icon}
+                    disabled={blockMerge}
+                    onClick={() => onAction(task, t)}
+                  >
+                    {t.label}
+                  </Button>
+                )
+              })}
             </div>
             <div className="dmeta">
               <MetaRow icon="folder" k="repo">
