@@ -762,13 +762,20 @@
 }
 
 .tl-item.is-reject .tl-node {
-  border-color: var(--st-blocked-bd);
-  background: var(--st-blocked-bg);
-  color: var(--st-blocked-fg);
+  border-color: var(--st-review-bd);
+  background: var(--st-review-bg);
+  color: var(--st-review-fg);
 }
 .tl-item.is-reject .tl-note {
-  background: var(--st-blocked-bg);
-  border-color: var(--st-blocked-bd);
+  border-left: 3px solid var(--st-review-bd);
+}
+.tl-note-tag {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--st-review-fg);
 }
 .tl-item.is-block .tl-node {
   border-color: var(--st-blocked-bd);
@@ -776,8 +783,10 @@
   color: var(--st-blocked-fg);
 }
 .tl-item.is-block .tl-note {
-  background: var(--st-blocked-bg);
-  border-color: var(--st-blocked-bd);
+  border-left: 3px solid var(--st-blocked-bd);
+}
+.tl-item.is-block .tl-note-tag {
+  color: var(--st-blocked-fg);
 }
 .tl-item.is-done .tl-node {
   border-color: var(--st-done-bd);
