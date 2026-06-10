@@ -40,6 +40,10 @@ const PATHS: Record<string, string> = {
   send: 'M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z',
   list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
   tag: 'M3 5.5A2.5 2.5 0 0 1 5.5 3H11l9 9-7.5 7.5L3 10.5V5.5ZM7 7h.01',
+  square:
+    'M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z',
+  checkSquare:
+    'M9 11.5l2.2 2.2L15.5 9M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z',
 }
 
 export function Icon({
