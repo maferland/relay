@@ -42,6 +42,17 @@ export function resolveActor(flag?: string): string {
   )
 }
 
+// 'agent' when RELAY_ACTOR is explicitly set (agent-driven call); 'human' otherwise.
+// MCP callers always pass actorKind: 'agent' directly — this covers CLI only.
+export function resolveActorKind(flag?: string): 'human' | 'agent' {
+  return flag !== undefined || process.env.RELAY_ACTOR !== undefined
+    ? 'agent'
+    : 'human'
+}
+
+// Stable per-process ID so events from the same run can be grouped.
+export const SESSION_ID: string = crypto.randomUUID()
+
 export interface GitContext {
   project: string
   branch?: string
