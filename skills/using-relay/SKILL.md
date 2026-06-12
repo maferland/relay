@@ -179,6 +179,52 @@ relay list --state review --since 2026-06-08T14:00:00Z --json
 `--since` keeps only tasks updated at/after an ISO timestamp, so you see "what moved since I last
 looked". Use `--json` for machine-readable output.
 
+## Orchestrator / drainer model
+
+For work that spans multiple sessions or needs human-in-the-loop gates, split responsibility into
+two roles:
+
+**ORCHESTRATOR** — owns the task lifecycle end-to-end. It claims the task with `--watch` (which
+also registers it as `task.watcher` so its identity persists across send-backs), spawns a drainer
+for the implementation, then runs `relay watch <id> --continuous --json` to react to every change
+in the same session:
+
+```bash
+# 1. Claim and mark yourself as watcher
+RELAY_ACTOR=orchestrator relay claim task-1a2b3c4d --watch
+# 2. Spawn a drainer (via Agent or a subprocess) with the specific instruction
+#    Agent: "implement task-1a2b3c4d per its description; push to review when done"
+# 3. React to each change in a stream
+relay watch task-1a2b3c4d --continuous --json --timeout 3600 | while IFS= read -r event; do
+  state=$(echo "$event" | python3 -c "import json,sys; print(json.load(sys.stdin)['state'])")
+  case "$state" in
+    review)   # QA the drainer's work; move to ready or send back
+    todo)     # drainer got a send-back — re-delegate or fix yourself
+    blocked)  # drainer is stuck — read the escalation note
+  esac
+done
+```
+
+Per-event decisions for the orchestrator:
+
+- **review** — QA the diff. Pass: `relay update <id> --state ready --note "QA passed"`. Fail: `relay update <id> --state todo --note "<specific feedback>"`.
+- **todo (send-back)** — read the rejection note in `relay show <id>`, re-delegate to a drainer with the new context, or fix it yourself.
+- **blocked / needsHuman** — surface to the human via `relay escalate <id>` or handle directly.
+- **ready** — notify the human if they haven't seen it; they drive `--tested` and `--state merged`.
+
+**DRAINER** — stateless; receives one specific instruction, implements it in a worktree, and pushes to `review`. It does not own the task between sessions. It should NOT re-claim a task that is already in `doing` with a watcher — the orchestrator handles reassignment.
+
+```bash
+# drainer session: implement and hand off
+RELAY_ACTOR=drainer-1 relay claim task-1a2b3c4d  # will fail if orchestrator already claimed
+# …do the work in a worktree…
+relay update task-1a2b3c4d --state review --expect-state doing \
+  --note "Fixed; ready for QA. Touched auth/redirect.ts"
+```
+
+This pattern keeps the orchestrator's long-running watch loop alive across drainer send-backs and
+CI failures, without needing the orchestrator to re-establish context each time.
+
 ## When to log a task vs. just doing it
 
 - **Just do it** if it's part of your current turn and no handoff is needed.
@@ -188,18 +234,20 @@ looked". Use `--json` for machine-readable output.
 
 ## Command reference
 
-| Command                                                                         | Purpose                                                |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `relay add "<title>" [--desc] [--plan] [--assignee] [--project] [--state]`      | log a task                                             |
-| `relay list [--state] [--assignee] [--project\|--all] [--since] [--json]`       | filtered list                                          |
-| `relay show <id> [--json]`                                                      | one task + full history                                |
-| `relay update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note                                   |
-| `relay update <id> [--reviewed\|--clear-reviewed] [--tested\|--clear-tested]`   | set/clear human checkpoint flags                       |
-| `relay claim <id> [--assignee] [--force]`                                       | assign to self, move to `doing`, stamp branch/worktree |
-| `relay comment <id> "<message>"`                                                | add a note to the thread, no state change              |
-| `relay watch <id> [--state] [--timeout] [--json]`                               | block until a task changes (run in background)         |
-| `relay escalate <id> --note "<what you need>"`                                  | flag as needing a human                                |
-| `relay resolve <id> [--note]`                                                   | clear the needs-human flag                             |
+| Command                                                                         | Purpose                                                   |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `relay add "<title>" [--desc] [--plan] [--assignee] [--project] [--state]`      | log a task                                                |
+| `relay list [--state] [--assignee] [--project\|--all] [--since] [--json]`       | filtered list                                             |
+| `relay show <id> [--json]`                                                      | one task + full history                                   |
+| `relay update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note                                      |
+| `relay update <id> [--reviewed\|--clear-reviewed] [--tested\|--clear-tested]`   | set/clear human checkpoint flags                          |
+| `relay claim <id> [--assignee] [--force] [--watch]`                             | assign to self; `--watch` also sets you as `task.watcher` |
+| `relay comment <id> "<message>"`                                                | add a note to the thread, no state change                 |
+| `relay watch <id> [--state] [--timeout] [--json] [--continuous]`                | block until a task changes; `--continuous` streams ndjson |
+| `relay watch --set <id>`                                                        | register as watcher without blocking                      |
+| `relay update <id> [--watcher X]`                                               | set/clear the watcher field explicitly                    |
+| `relay escalate <id> --note "<what you need>"`                                  | flag as needing a human                                   |
+| `relay resolve <id> [--note]`                                                   | clear the needs-human flag                                |
 
 Pass an empty string (`--assignee ""`) to clear a field. Identity comes from `--actor` or
 `$RELAY_ACTOR`.
