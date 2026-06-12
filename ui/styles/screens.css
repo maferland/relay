@@ -1280,8 +1280,8 @@
 }
 
 .kcol {
-  flex: 1 1 200px;
-  min-width: 200px;
+  flex: 1 1 160px;
+  min-width: 160px;
   display: flex;
   flex-direction: column;
   background: var(--surface-2);
@@ -1293,8 +1293,8 @@
     box-shadow var(--speed);
 }
 .kcol-lane {
-  flex: 0 0 232px;
-  min-width: 232px;
+  flex: 1 1 160px;
+  min-width: 160px;
   margin-left: 16px;
   background: transparent;
   border-style: dashed;
