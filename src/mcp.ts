@@ -251,6 +251,12 @@ export function registerTools(server: McpServer, store: TaskStore): void {
         branch: z.string().optional(),
         worktree: z.string().optional(),
         note: z.string().optional(),
+        force: z
+          .boolean()
+          .optional()
+          .describe(
+            'Override an existing claim (use when the prior agent is known to be dead)'
+          ),
       }),
     },
     async ({
@@ -259,6 +265,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
       branch,
       worktree,
       note,
+      force,
     }): Promise<CallToolResult> => {
       try {
         const git = gitContext()
@@ -268,6 +275,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
           note,
           branch: branch ?? git.branch,
           worktree: worktree ?? git.worktree,
+          force,
         })
         return ok(`Claimed ${summarize(task)}`)
       } catch (e) {
