@@ -189,6 +189,10 @@ export function ProjectTag({
   )
 }
 
+export function Kbd({ children }: { children: ReactNode }) {
+  return <kbd className="kbd">{children}</kbd>
+}
+
 export function LabelChip({ label }: { label: string }) {
   return (
     <span className="label-chip" title={'label: ' + label}>

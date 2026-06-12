@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Avatar, Icon, LabelChips, MoveMenu } from '../components/ui.tsx'
+import { Avatar, Icon, Kbd, LabelChips, MoveMenu } from '../components/ui.tsx'
 import type { BoardFilters, SinceWindow } from '../lib/router.ts'
 import { relTime } from '../lib/time.ts'
 import { STATE_META } from '../lib/transitions.ts'
@@ -22,10 +22,6 @@ const BOARD_STATES: State[] = [
   'blocked',
 ]
 
-function Kbd({ children }: { children: React.ReactNode }) {
-  return <kbd className="kbd">{children}</kbd>
-}
-
 interface BoardProps {
   tasks: UiTask[]
   actors: Record<string, Actor>
@@ -36,6 +32,7 @@ interface BoardProps {
   onFilters: (next: BoardFilters) => void
   onOpen: (id: string) => void
   onAction: (task: UiTask, t: Transition) => void
+  onShowShortcuts: () => void
 }
 
 export function Board({
@@ -48,6 +45,7 @@ export function Board({
   onFilters,
   onOpen,
   onAction,
+  onShowShortcuts,
 }: BoardProps) {
   const { proj, mineOnly, since } = filters
   const q = filters.q
@@ -362,45 +360,18 @@ export function Board({
         ))
       )}
 
-      {bview === 'list' ? (
-        <div
-          style={{
-            display: 'flex',
-            gap: 14,
-            marginTop: 18,
-            color: 'var(--text-faint)',
-            fontSize: 'var(--fs-xs)',
-            alignItems: 'center',
-          }}
-        >
-          <span>Navigate</span>
-          <span style={{ display: 'inline-flex', gap: 4 }}>
-            <Kbd>j</Kbd>
-            <Kbd>k</Kbd>
+      <div className="board-footer">
+        {bview !== 'list' && (
+          <span className="board-footer-hint">
+            <Icon name="list" size={12} /> Drag cards between columns to change
+            state
           </span>
-          <span>open</span>
-          <span style={{ display: 'inline-flex', gap: 4 }}>
-            <Kbd>e</Kbd>
-          </span>
-          <span style={{ marginLeft: 8 }}>
-            · click a state badge to move a task
-          </span>
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            marginTop: 16,
-            color: 'var(--text-faint)',
-            fontSize: 'var(--fs-xs)',
-            alignItems: 'center',
-          }}
-        >
-          <Icon name="list" size={13} /> Drag a card between columns to change
-          its state. Moving backward or to Blocked asks for a note.
-        </div>
-      )}
+        )}
+        <button className="shortcuts-hint" onClick={onShowShortcuts}>
+          <Kbd>?</Kbd>
+          <span>shortcuts</span>
+        </button>
+      </div>
     </div>
   )
 }

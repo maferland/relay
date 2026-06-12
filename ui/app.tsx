@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Avatar, Button, Icon, StateBadge } from './components/ui.tsx'
+import { Avatar, Button, Icon, Kbd, StateBadge } from './components/ui.tsx'
 import * as api from './lib/api.ts'
 import type { BoardFilters } from './lib/router.ts'
 import { DEFAULT_FILTERS, useRouter } from './lib/router.ts'
@@ -331,6 +331,85 @@ function ToastHost({
   )
 }
 
+const SHORTCUT_GROUPS: {
+  title: string
+  rows: { keys: string[]; desc: string }[]
+}[] = [
+  {
+    title: 'Navigation',
+    rows: [
+      { keys: ['j', 'k'], desc: 'Move up / down through the list' },
+      { keys: ['e', '↵'], desc: 'Open selected task' },
+      { keys: ['Esc'], desc: 'Go back / close overlay' },
+    ],
+  },
+  {
+    title: 'General',
+    rows: [
+      { keys: ['?'], desc: 'Show this shortcuts overlay' },
+      { keys: ['⌘↵', 'Ctrl↵'], desc: 'Submit a note or comment' },
+    ],
+  },
+  {
+    title: 'Board',
+    rows: [
+      { keys: ['click badge'], desc: 'Move a task to a new state' },
+      { keys: ['drag card'], desc: 'Move between columns (kanban)' },
+    ],
+  },
+]
+
+function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="modal-scrim"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="modal shortcuts-modal" role="dialog" aria-modal="true">
+        <div className="modal-head">
+          <div className="m-kicker">
+            <Icon name="check" size={14} />
+            Keyboard shortcuts
+          </div>
+          <h3>Shortcuts</h3>
+        </div>
+        <div className="modal-body shortcuts-body">
+          {SHORTCUT_GROUPS.map((g) => (
+            <div key={g.title} className="sc-group">
+              <div className="sc-group-title">{g.title}</div>
+              {g.rows.map((r) => (
+                <div key={r.keys.join()} className="sc-row">
+                  <span className="sc-keys">
+                    {r.keys.map((k) => (
+                      <Kbd key={k}>{k}</Kbd>
+                    ))}
+                  </span>
+                  <span className="sc-desc">{r.desc}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="modal-foot">
+          <Button variant="default" size="md" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const EMPTY: Snapshot = { me: 'you', actors: {}, projects: [], tasks: [] }
 
 export function App() {
@@ -348,6 +427,7 @@ export function App() {
   } | null>(null)
   const [resolveTask, setResolveTask] = useState<UiTask | null>(null)
   const [creating, setCreating] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(Date.now())
@@ -364,6 +444,16 @@ export function App() {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
     localStorage.setItem('at-theme', dark ? 'dark' : 'light')
   }, [dark])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === '?') setShowShortcuts(true)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   useEffect(() => {
     const z = setInterval(() => setNow(Date.now()), 5000)
@@ -806,6 +896,7 @@ export function App() {
               onFilters={goBoard}
               onOpen={openTask}
               onAction={onAction}
+              onShowShortcuts={() => setShowShortcuts(true)}
             />
           )}
           {view === 'detail' && (
@@ -849,6 +940,9 @@ export function App() {
           onCancel={() => setCreating(false)}
           onConfirm={doCreate}
         />
+      )}
+      {showShortcuts && (
+        <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />
       )}
       <ToastHost toasts={toasts} onOpen={openTask} onDismiss={dismissToast} />
     </div>
