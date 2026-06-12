@@ -41,6 +41,9 @@ const BOOL_FLAGS = new Set([
   'tested',
   'clear-reviewed',
   'clear-tested',
+  'force',
+  'watch',
+  'set',
 ])
 const VALUE_FLAGS = new Set([
   'desc',
@@ -63,6 +66,7 @@ const VALUE_FLAGS = new Set([
   'rm-label',
   'pr',
   'expect-state',
+  'watcher',
 ])
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -166,9 +170,10 @@ function printTask(task: Task, json: boolean): void {
     task.humanTested ? 'tested' : null,
   ].filter(Boolean)
   const checks = checked.length ? `\n  human: ${checked.join(', ')}` : ''
+  const watcherLine = task.watcher ? `   watcher: ${task.watcher}` : ''
   process.stdout.write(
     `${task.id}  [${task.state}]${flag}  ${task.title}\n` +
-      `  project: ${task.project}   assignee: ${task.assignee ?? '—'}   updated: ${short(task.updatedAt)}${where}${labels}${checks}\n`
+      `  project: ${task.project}   assignee: ${task.assignee ?? '—'}${watcherLine}   updated: ${short(task.updatedAt)}${where}${labels}${checks}\n`
   )
 }
 
@@ -307,6 +312,8 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
   if (args.flags['clear-tested']) changes.humanTested = false
   if (args.flags['expect-state'] !== undefined)
     changes.expectedState = requireState(val(args.flags['expect-state']))
+  if (args.flags.watcher !== undefined)
+    changes.watcher = val(args.flags.watcher) ?? null
 
   const task = await new SqliteTaskStore()
     .update(id, changes, {
@@ -330,6 +337,7 @@ async function claimCommand(args: ParsedArgs): Promise<void> {
       branch: val(args.flags.branch) ?? git.branch,
       worktree: val(args.flags.worktree) ?? git.worktree,
       force: !!args.flags.force,
+      watch: !!args.flags.watch,
     })
     .catch((e: Error) => die(e.message))
   printTask(task, !!args.flags.json)
@@ -455,6 +463,17 @@ async function watchCommand(args: ParsedArgs): Promise<void> {
     ? parseFloat(val(args.flags.timeout)!)
     : 600
   const deadline = timeout > 0 ? Date.now() + timeout * 1000 : Infinity
+
+  // relay watch --set <id>: register RELAY_ACTOR as watcher without blocking.
+  if (args.flags.set) {
+    if (!id) die('usage: relay watch --set <id>', 2)
+    const actor = resolveActor(val(args.flags.actor))
+    const task = await store
+      .update(id, { watcher: actor }, { actor, note: `watching` })
+      .catch((e: Error) => die(e.message))
+    printTask(task, json)
+    return
+  }
 
   if (id) {
     // Follow one task until its next change (optionally only when it reaches --state).
@@ -593,11 +612,12 @@ const HELP =
   '  relay add "<title>" [--desc ..] [--plan ..] [--assignee ..] [--project ..] [--state todo]\n' +
   '  relay list [--state S] [--assignee X] [--project P|--all] [--since ISO] [--json]\n' +
   '  relay show <id> [--json]\n' +
-  '  relay update <id> [--state S] [--expect-state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
+  '  relay update <id> [--state S] [--expect-state S] [--assignee X] [--watcher X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
   '  relay update <id> [--reviewed|--clear-reviewed] [--tested|--clear-tested]   (human checkpoints; reviewed tasks need --tested for merged)\n' +
-  '  relay claim <id> [--assignee X] [--force]   (--force overrides an existing claim)\n' +
+  '  relay claim <id> [--assignee X] [--force] [--watch]   (--force overrides existing claim; --watch also sets you as watcher)\n' +
   '  relay comment <id> "<message>"   (leave a note on the thread, no state change)\n' +
   '  relay watch <id> [--state S] [--timeout sec]   (block until it changes; run in background)\n' +
+  '  relay watch --set <id>   (register RELAY_ACTOR as watcher without blocking)\n' +
   '  relay watch --state review [--project P|--all]  (block until a task enters that queue)\n' +
   '  relay link <id> --pr owner/repo#123   (link a GitHub PR; needs gh)\n' +
   '  relay sync <id>   ·   relay watch <id> --remote   (pull PR status onto the task)\n' +

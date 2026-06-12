@@ -168,6 +168,7 @@ function applyChanges(
     kept.push(add)
     task.links = kept
   }
+  if (changes.watcher !== undefined) task.watcher = changes.watcher || undefined
   if (!event.note && !event.to && checks.length) event.note = checks.join(', ')
   task.updatedAt = event.at
   task.history.push(event)
@@ -189,6 +190,7 @@ export interface ClaimInput {
   branch?: string
   worktree?: string
   force?: boolean
+  watch?: boolean // if true, also registers the claimant as task.watcher
 }
 
 export interface TaskStore {
@@ -339,6 +341,7 @@ export class SqliteTaskStore implements TaskStore {
               state: 'doing',
               branch: input.branch,
               worktree: input.worktree,
+              watcher: input.watch ? input.assignee : undefined,
             },
             { actor: input.actor, note: input.note ?? 'claimed' }
           )
