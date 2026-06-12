@@ -20,6 +20,7 @@ import {
   taskDetailUrl,
 } from './util.js'
 import { operatorName, readConfig, writeConfig } from './config.js'
+import { AgentRegistry } from './agents.js'
 import { upgradeCommand } from './upgrade.js'
 import { maybeNudge } from './update-check.js'
 import { VERSION } from './version.js'
@@ -70,6 +71,7 @@ const VALUE_FLAGS = new Set([
   'pr',
   'expect-state',
   'watcher',
+  'ttl',
 ])
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -639,6 +641,68 @@ async function uiCommand(args: ParsedArgs): Promise<void> {
   openBrowser(taskDetailUrl(url, taskId))
 }
 
+async function registerCommand(args: ParsedArgs): Promise<void> {
+  const project = val(args.flags.project) ?? detectProject()
+  const ttl = args.flags.ttl ? parseInt(val(args.flags.ttl)!, 10) : undefined
+  const registry = new AgentRegistry()
+  const agent = registry.register(project, ttl)
+  registry.close()
+  if (args.flags.json) {
+    process.stdout.write(JSON.stringify(agent, null, 2) + '\n')
+  } else {
+    process.stdout.write(`export RELAY_ACTOR=${agent.name}\n`)
+    process.stderr.write(
+      `Registered ${agent.name} (project: ${project})\n` +
+        `Run the export above to adopt this identity for the session.\n`
+    )
+  }
+}
+
+async function agentsCommand(args: ParsedArgs): Promise<void> {
+  const json = !!args.flags.json
+  const scope = args.flags.all
+    ? undefined
+    : (val(args.flags.project) ?? detectProject())
+  const ttl = args.flags.ttl ? parseInt(val(args.flags.ttl)!, 10) : undefined
+  const registry = new AgentRegistry()
+  const agents = registry.list(scope)
+  registry.close()
+  if (agents.length === 0) {
+    const hint = scope
+      ? ` in project "${scope}" (use --all to see every project)`
+      : ''
+    process.stderr.write(`No agents registered${hint}.\n`)
+    if (json) process.stdout.write('[]\n')
+    return
+  }
+  if (json) {
+    process.stdout.write(
+      JSON.stringify(
+        agents.map((a) => ({ ...a, status: AgentRegistry.status(a, ttl) })),
+        null,
+        2
+      ) + '\n'
+    )
+    return
+  }
+  const rows = agents.map((a) => [
+    a.name,
+    a.project ?? '—',
+    AgentRegistry.status(a, ttl),
+    a.lastSeen.slice(0, 16).replace('T', ' '),
+  ])
+  const headers = ['NAME', 'PROJECT', 'STATUS', 'LAST SEEN']
+  const widths = headers.map((h, i) =>
+    Math.max(h.length, ...rows.map((r) => r[i].length))
+  )
+  const line = (cells: string[]) =>
+    cells
+      .map((c, i) => (i === cells.length - 1 ? c : c.padEnd(widths[i])))
+      .join('  ')
+  process.stdout.write(line(headers) + '\n')
+  for (const r of rows) process.stdout.write(line(r) + '\n')
+}
+
 const HELP =
   'relay — local-first task tracker for multi-agent coordination\n\n' +
   'Commands:\n' +
@@ -658,6 +722,8 @@ const HELP =
   '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
   '  relay ui [<id>] [--me <name>] [--port N]   (local web UI; <id> opens straight to that task)\n' +
   '  relay config set name "<you>"   (your operator identity; fixes "unknown")\n' +
+  '  relay register [--project P] [--json]   (generate a unique session name; prints export RELAY_ACTOR=...)\n' +
+  '  relay agents [--project P|--all] [--json]   (list registered agents + status)\n' +
   '  relay mcp   (stdio MCP server over the same store)\n' +
   '  relay upgrade   ·   relay --version\n' +
   '  relay completion <bash|zsh|fish> [--install]   (print, or write, a shell completion script)\n\n' +
@@ -678,6 +744,15 @@ async function main(): Promise<void> {
     process.exit(0)
   }
   maybeNudge(args.command, !!args.flags.json)
+  // Renew last_seen for any registered agent on every command (best-effort).
+  if (args.command !== 'register' && args.command !== 'agents') {
+    const actor = resolveActor(val(args.flags.actor))
+    try {
+      new AgentRegistry().renew(actor)
+    } catch {
+      // Not a registered agent — that's fine.
+    }
+  }
   switch (args.command) {
     case 'upgrade':
       return upgradeCommand()
@@ -704,6 +779,10 @@ async function main(): Promise<void> {
       return syncCommand(args)
     case 'watch':
       return watchCommand(args)
+    case 'register':
+      return registerCommand(args)
+    case 'agents':
+      return agentsCommand(args)
     case 'completion':
       return completionCommand(args)
     case 'config':
