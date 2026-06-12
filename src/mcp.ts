@@ -155,6 +155,13 @@ export function registerTools(server: McpServer, store: TaskStore): void {
           .describe(
             'Set/clear the human-tested checkpoint; required for merged'
           ),
+        watcher: z
+          .string()
+          .nullable()
+          .optional()
+          .describe(
+            'Set the orchestrator watcher (empty string or null to clear)'
+          ),
         expectedState: StateEnum.optional().describe(
           'Guard against a race: fail if the current state is not this value. ' +
             'Pass the state you believe the task is in (e.g. "doing") when pushing to review, ' +
@@ -257,6 +264,12 @@ export function registerTools(server: McpServer, store: TaskStore): void {
           .describe(
             'Override an existing claim (use when the prior agent is known to be dead)'
           ),
+        watch: z
+          .boolean()
+          .optional()
+          .describe(
+            'Also register assignee as task.watcher (orchestrator for the full lifecycle)'
+          ),
       }),
     },
     async ({
@@ -266,6 +279,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
       worktree,
       note,
       force,
+      watch,
     }): Promise<CallToolResult> => {
       try {
         const git = gitContext()
@@ -276,6 +290,7 @@ export function registerTools(server: McpServer, store: TaskStore): void {
           branch: branch ?? git.branch,
           worktree: worktree ?? git.worktree,
           force,
+          watch,
         })
         return ok(`Claimed ${summarize(task)}`)
       } catch (e) {
