@@ -52,6 +52,8 @@ function adapt(task: Task) {
     history: task.history.map((e) => ({
       at: ms(e.at),
       actor: e.actor ?? 'unknown',
+      actorKind: e.actorKind,
+      sessionId: e.sessionId,
       from: e.from ?? null,
       to: e.to ?? null,
       note: e.note ?? '',
@@ -62,10 +64,16 @@ function adapt(task: Task) {
 
 function actorsFrom(tasks: Task[], me: string) {
   const names = new Set<string>([me])
+  const kindHint: Record<string, 'human' | 'agent'> = {}
   for (const t of tasks) {
     if (t.assignee) names.add(t.assignee)
     if (t.createdBy) names.add(t.createdBy)
-    for (const e of t.history) if (e.actor) names.add(e.actor)
+    for (const e of t.history) {
+      if (e.actor) {
+        names.add(e.actor)
+        if (e.actorKind && !kindHint[e.actor]) kindHint[e.actor] = e.actorKind
+      }
+    }
   }
   const actors: Record<
     string,
@@ -74,7 +82,7 @@ function actorsFrom(tasks: Task[], me: string) {
   for (const name of names) {
     actors[name] = {
       name,
-      kind: name === me ? 'human' : 'agent',
+      kind: kindHint[name] ?? (name === me ? 'human' : 'agent'),
       short: initials(name),
     }
   }

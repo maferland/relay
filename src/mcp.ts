@@ -3,7 +3,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod/v4'
 import { buildTask, type TaskStore } from './store.js'
 import { STATES, type Task } from './types.js'
-import { detectProject, gitContext } from './util.js'
+import { detectProject, gitContext, SESSION_ID } from './util.js'
 import { VERSION } from './version.js'
 import { syncLink } from './connectors/index.js'
 
@@ -60,6 +60,8 @@ export function registerTools(server: McpServer, store: TaskStore): void {
         const task = buildTask({
           ...input,
           project: input.project ?? detectProject(),
+          actorKind: 'agent',
+          sessionId: SESSION_ID,
         })
         await store.add(task)
         return ok(`Logged ${summarize(task)}`)
@@ -173,7 +175,12 @@ export function registerTools(server: McpServer, store: TaskStore): void {
     },
     async ({ id, note, actor, ...changes }): Promise<CallToolResult> => {
       try {
-        const task = await store.update(id, changes, { actor, note })
+        const task = await store.update(id, changes, {
+          actor,
+          actorKind: 'agent',
+          sessionId: SESSION_ID,
+          note,
+        })
         return ok(`Updated ${summarize(task)}`)
       } catch (e) {
         return err(e)
@@ -195,7 +202,12 @@ export function registerTools(server: McpServer, store: TaskStore): void {
     },
     async ({ id, note, actor }): Promise<CallToolResult> => {
       try {
-        const task = await store.escalate(id, { actor, note })
+        const task = await store.escalate(id, {
+          actor,
+          actorKind: 'agent',
+          sessionId: SESSION_ID,
+          note,
+        })
         return ok(`Escalated ${summarize(task)}`)
       } catch (e) {
         return err(e)
@@ -217,7 +229,12 @@ export function registerTools(server: McpServer, store: TaskStore): void {
     },
     async ({ id, note, actor }): Promise<CallToolResult> => {
       try {
-        const task = await store.comment(id, { actor, note })
+        const task = await store.comment(id, {
+          actor,
+          actorKind: 'agent',
+          sessionId: SESSION_ID,
+          note,
+        })
         return ok(`Commented on ${summarize(task)}`)
       } catch (e) {
         return err(e)
@@ -238,7 +255,12 @@ export function registerTools(server: McpServer, store: TaskStore): void {
     },
     async ({ id, note, actor }): Promise<CallToolResult> => {
       try {
-        const task = await store.resolve(id, { actor, note })
+        const task = await store.resolve(id, {
+          actor,
+          actorKind: 'agent',
+          sessionId: SESSION_ID,
+          note,
+        })
         return ok(`Resolved ${summarize(task)}`)
       } catch (e) {
         return err(e)
@@ -286,6 +308,8 @@ export function registerTools(server: McpServer, store: TaskStore): void {
         const task = await store.claim(id, {
           assignee,
           actor: assignee,
+          actorKind: 'agent',
+          sessionId: SESSION_ID,
           note,
           branch: branch ?? git.branch,
           worktree: worktree ?? git.worktree,
