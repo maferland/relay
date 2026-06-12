@@ -141,6 +141,22 @@ describe('SqliteTaskStore', () => {
     expect(cleared.description).toBeUndefined()
   })
 
+  it('sets and clears watcher via update', async () => {
+    await store.add(makeTask('task-w'))
+    const withWatcher = await store.update(
+      'task-w',
+      { watcher: 'orchestrator' },
+      { actor: 'lead' }
+    )
+    expect(withWatcher.watcher).toBe('orchestrator')
+    const cleared = await store.update(
+      'task-w',
+      { watcher: null },
+      { actor: 'lead' }
+    )
+    expect(cleared.watcher).toBeUndefined()
+  })
+
   describe('claim', () => {
     it('assigns and moves an open task to doing', async () => {
       await store.add(makeTask('task-1'))
@@ -176,6 +192,21 @@ describe('SqliteTaskStore', () => {
       await store.add(makeTask('task-unassigned', { state: 'doing' }))
       const claimed = await store.claim('task-unassigned', { assignee: 'w1' })
       expect(claimed.assignee).toBe('w1')
+    })
+
+    it('sets watcher to the claimant when watch=true', async () => {
+      await store.add(makeTask('task-w'))
+      const watched = await store.claim('task-w', {
+        assignee: 'orchestrator',
+        watch: true,
+      })
+      expect(watched.watcher).toBe('orchestrator')
+    })
+
+    it('does not set watcher when watch is omitted', async () => {
+      await store.add(makeTask('task-w2'))
+      const claimed = await store.claim('task-w2', { assignee: 'w1' })
+      expect(claimed.watcher).toBeUndefined()
     })
 
     it('refuses to claim a task in review, ready, or merged', async () => {
