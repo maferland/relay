@@ -100,6 +100,16 @@ function applyChanges(
   const event: TaskEvent = { at: new Date().toISOString() }
   if (meta.actor) event.actor = meta.actor
   if (note) event.note = note
+  // Compare-and-swap guard: catch a send-back that arrived before the agent's push.
+  if (
+    changes.expectedState !== undefined &&
+    task.state !== changes.expectedState
+  ) {
+    throw new Error(
+      `State mismatch: expected "${changes.expectedState}" but task is "${task.state}". ` +
+        `It may have been moved (check relay show ${task.id} for a send-back note).`
+    )
+  }
   // Human checkpoints apply before the state guard so `--state merged --tested` works.
   const checks: string[] = []
   if (changes.humanReviewed !== undefined) {
