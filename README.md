@@ -56,7 +56,12 @@ relay show task-1a2b3c4d                     # full back-and-forth history
 States flow `todo → doing → review → ready → merged`, with `blocked` to the side. `review` is
 the QA-handoff signal; `ready` means QA'd and waiting on the human's review and merge; `merged`
 is terminal. Any send-back (a backward move or `blocked`) requires a `--note`, so the next
-actor always knows why.
+actor always knows why. Claiming a task already held by another agent is rejected unless you pass
+`--force` — so two agents can't silently clobber each other's work.
+
+Mark human checkpoints as they clear — `--reviewed` after code review, `--tested` when you've
+confirmed it on a real environment. A task that passes through `review` won't accept `--state merged`
+without `--tested`; the store rejects the transition so nothing ships untested by accident.
 
 Tag work with free-form labels (orthogonal to state) and filter on them, for review granularity
 without new states. Leave a note on the thread without a state change with `relay comment`:
