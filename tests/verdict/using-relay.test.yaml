@@ -51,6 +51,16 @@ tests:
       - type: llm-rubric
         value: 'Response shows `relay escalate <id> --note "..."` (the needs-human flag, with a note saying what''s needed) and the human inbox query `relay list --needs-human`. Using escalate is preferred over only setting state=blocked. Any task id (real, placeholder, or <id>) is fine.'
 
+  - description: 'merging a reviewed task requires --tested'
+    vars:
+      prompt: "A task went through QA and is now in the ready state. I want to mark it as merged. What's the exact command? Don't run anything."
+      retries: 1
+    assert:
+      - type: javascript
+        value: "/--tested\\b/.test(output)"
+      - type: llm-rubric
+        value: 'Response includes `relay update <id> --state merged --tested` (with an optional --note). It does NOT omit `--tested` — a reviewed task that skips --tested would be rejected by the store.'
+
   - description: 'uses real commands, not invented ones'
     vars:
       prompt: "What are the exact commands an agent runs to pick up task-aaa111 and mark it ready for review? Don't run anything — just list the commands."
