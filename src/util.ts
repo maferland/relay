@@ -3,6 +3,10 @@ import os from 'os'
 import path from 'path'
 import { operatorName } from './config.js'
 
+export function taskDetailUrl(base: string, taskId?: string): string {
+  return taskId ? `${base}/task/${encodeURIComponent(taskId)}` : base
+}
+
 export function openBrowser(url: string): void {
   if (process.env.RELAY_NO_OPEN === '1') return
   const cmd =

@@ -3,7 +3,12 @@ import { execFileSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { detectProject, gitContext, resolveActor } from './util.js'
+import {
+  detectProject,
+  gitContext,
+  resolveActor,
+  taskDetailUrl,
+} from './util.js'
 
 function git(args: string[], cwd: string): void {
   execFileSync('git', args, { cwd, stdio: 'ignore' })
@@ -77,5 +82,26 @@ describe('resolveActor', () => {
 
     delete process.env.USER
     expect(resolveActor()).toBe('unknown')
+  })
+})
+
+describe('taskDetailUrl', () => {
+  it('returns the base url when no task id given', () => {
+    expect(taskDetailUrl('http://localhost:4321')).toBe('http://localhost:4321')
+    expect(taskDetailUrl('http://localhost:4321', undefined)).toBe(
+      'http://localhost:4321'
+    )
+  })
+
+  it('appends /task/<encoded-id> when a task id is given', () => {
+    expect(taskDetailUrl('http://localhost:4321', 'task-abc123')).toBe(
+      'http://localhost:4321/task/task-abc123'
+    )
+  })
+
+  it('percent-encodes special characters in the task id', () => {
+    expect(taskDetailUrl('http://localhost:4321', 'task/with spaces')).toBe(
+      'http://localhost:4321/task/task%2Fwith%20spaces'
+    )
   })
 })
