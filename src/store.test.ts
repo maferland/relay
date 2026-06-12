@@ -525,3 +525,57 @@ describe('SqliteTaskStore', () => {
     })
   })
 })
+
+describe('expectedState guard', () => {
+  let dir: string
+  let store: SqliteTaskStore
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'relay-guard-'))
+    store = new SqliteTaskStore(dir)
+  })
+
+  afterEach(() => {
+    store.close()
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('succeeds when the task state matches expectedState', async () => {
+    const task = makeTask('task-guard-ok', { state: 'doing' })
+    await store.add(task)
+    await expect(
+      store.update(
+        'task-guard-ok',
+        { state: 'review', expectedState: 'doing' },
+        {}
+      )
+    ).resolves.toMatchObject({ state: 'review' })
+  })
+
+  it('rejects the transition when state does not match expectedState', async () => {
+    const task = makeTask('task-guard-fail', { state: 'todo' })
+    await store.add(task)
+    await expect(
+      store.update(
+        'task-guard-fail',
+        { state: 'review', expectedState: 'doing' },
+        {}
+      )
+    ).rejects.toThrow('State mismatch')
+  })
+
+  it('leaves the task unchanged after a rejected transition', async () => {
+    const task = makeTask('task-guard-unchanged', { state: 'todo' })
+    await store.add(task)
+    await store
+      .update(
+        'task-guard-unchanged',
+        { state: 'review', expectedState: 'doing' },
+        {}
+      )
+      .catch(() => {})
+    const after = await store.get('task-guard-unchanged')
+    expect(after!.state).toBe('todo')
+    expect(after!.history).toHaveLength(1)
+  })
+})

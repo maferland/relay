@@ -62,6 +62,7 @@ const VALUE_FLAGS = new Set([
   'add-label',
   'rm-label',
   'pr',
+  'expect-state',
 ])
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -304,6 +305,8 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
   if (args.flags['clear-reviewed']) changes.humanReviewed = false
   if (args.flags.tested) changes.humanTested = true
   if (args.flags['clear-tested']) changes.humanTested = false
+  if (args.flags['expect-state'] !== undefined)
+    changes.expectedState = requireState(val(args.flags['expect-state']))
 
   const task = await new SqliteTaskStore()
     .update(id, changes, {
@@ -589,7 +592,7 @@ const HELP =
   '  relay add "<title>" [--desc ..] [--plan ..] [--assignee ..] [--project ..] [--state todo]\n' +
   '  relay list [--state S] [--assignee X] [--project P|--all] [--since ISO] [--json]\n' +
   '  relay show <id> [--json]\n' +
-  '  relay update <id> [--state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
+  '  relay update <id> [--state S] [--expect-state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
   '  relay update <id> [--reviewed|--clear-reviewed] [--tested|--clear-tested]   (human checkpoints; reviewed tasks need --tested for merged)\n' +
   '  relay claim <id> [--assignee X]\n' +
   '  relay comment <id> "<message>"   (leave a note on the thread, no state change)\n' +
