@@ -152,6 +152,32 @@ describe('SqliteTaskStore', () => {
       expect(claimed.assignee).toBe('w1')
     })
 
+    it('refuses to claim a task already claimed by another agent', async () => {
+      await store.add(
+        makeTask('task-taken', { state: 'doing', assignee: 'w1' })
+      )
+      await expect(
+        store.claim('task-taken', { assignee: 'w2' })
+      ).rejects.toThrow(/already claimed/)
+    })
+
+    it('allows stealing a claim with --force', async () => {
+      await store.add(
+        makeTask('task-taken2', { state: 'doing', assignee: 'w1' })
+      )
+      const stolen = await store.claim('task-taken2', {
+        assignee: 'w2',
+        force: true,
+      })
+      expect(stolen.assignee).toBe('w2')
+    })
+
+    it('allows claiming an unassigned doing task without --force', async () => {
+      await store.add(makeTask('task-unassigned', { state: 'doing' }))
+      const claimed = await store.claim('task-unassigned', { assignee: 'w1' })
+      expect(claimed.assignee).toBe('w1')
+    })
+
     it('refuses to claim a task in review, ready, or merged', async () => {
       await store.add(makeTask('task-r', { state: 'review' }))
       await store.add(makeTask('task-rd', { state: 'ready' }))
