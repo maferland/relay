@@ -603,6 +603,35 @@ describe('tasks CLI', () => {
       expect(stderr).toMatch(/not found/)
     })
 
+    it('--continuous emits one ndjson line per change and exits on timeout', async () => {
+      const { id } = await addTask('streaming', ['--assignee', 'w1'])
+      await run(['claim', id], 'w1')
+      const watch = spawnCli([
+        'watch',
+        id,
+        '--continuous',
+        '--json',
+        '--interval',
+        '0.2',
+        '--timeout',
+        '5',
+      ])
+      await sleep(400)
+      await run(['update', id, '--note', 'event-1'], 'w1')
+      await sleep(400)
+      await run(['update', id, '--note', 'event-2'], 'w1')
+      await sleep(400)
+      watch.proc.kill()
+      const { stdout } = await watch.result()
+      const lines = stdout.trim().split('\n').filter(Boolean)
+      expect(lines.length).toBeGreaterThanOrEqual(2)
+      const notes = lines
+        .map((l) => JSON.parse(l) as Task)
+        .map((t) => t.history.at(-1)?.note)
+      expect(notes).toContain('event-1')
+      expect(notes).toContain('event-2')
+    })
+
     it('--state blocks until a task enters that queue', async () => {
       const { id } = await addTask('q', ['--assignee', 'w1'])
       const watch = spawnCli([

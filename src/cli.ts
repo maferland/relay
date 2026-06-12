@@ -44,6 +44,7 @@ const BOOL_FLAGS = new Set([
   'force',
   'watch',
   'set',
+  'continuous',
 ])
 const VALUE_FLAGS = new Set([
   'desc',
@@ -449,11 +450,11 @@ function printChange(task: Task, json: boolean): void {
   }
 }
 
-// Block until a task changes, then return. Run with run_in_background so the
-// agent is woken on the change. Exit 0 on change, 3 on timeout, 2 on bad args.
+// Block until a task changes. --continuous re-arms after each event (ndjson stream).
 async function watchCommand(args: ParsedArgs): Promise<void> {
   const store = new SqliteTaskStore()
   const json = !!args.flags.json
+  const continuous = !!args.flags.continuous
   const [id] = args.positional
   const interval = Math.max(
     0.2,
@@ -476,21 +477,25 @@ async function watchCommand(args: ParsedArgs): Promise<void> {
   }
 
   if (id) {
-    // Follow one task until its next change (optionally only when it reaches --state).
     const until = requireState(val(args.flags.state))
     const remote = !!args.flags.remote
     const actor = resolveActor(val(args.flags.actor))
     const start = await store.get(id).catch((e: Error) => die(e.message))
     if (!start) die(`Task "${id}" not found.`, 2)
-    const baseline = val(args.flags.since) ?? start.updatedAt
+    let baseline = val(args.flags.since) ?? start.updatedAt
+    const emit = (t: Task) => {
+      if (continuous && json) process.stdout.write(JSON.stringify(t) + '\n')
+      else printChange(t, json)
+    }
     for (;;) {
       if (remote) {
         const t = await store.get(id)
         for (const link of t?.links ?? []) {
           const changed = await syncLink(store, id, link, actor)
           if (changed) {
-            printChange(changed, json)
-            return
+            emit(changed)
+            if (!continuous) return
+            baseline = changed.updatedAt
           }
         }
       }
@@ -500,11 +505,16 @@ async function watchCommand(args: ParsedArgs): Promise<void> {
         task.updatedAt > baseline &&
         (!until || task.state === until)
       ) {
-        printChange(task, json)
+        emit(task)
+        if (!continuous) return
+        baseline = task.updatedAt
+      }
+      if (Date.now() >= deadline) {
+        if (continuous)
+          process.stderr.write(`relay watch: stream ended after ${timeout}s\n`)
+        else die(`Timed out after ${timeout}s with no change to ${id}.`, 3)
         return
       }
-      if (Date.now() >= deadline)
-        die(`Timed out after ${timeout}s with no change to ${id}.`, 3)
       await sleep(interval * 1000)
     }
   }
@@ -616,7 +626,7 @@ const HELP =
   '  relay update <id> [--reviewed|--clear-reviewed] [--tested|--clear-tested]   (human checkpoints; reviewed tasks need --tested for merged)\n' +
   '  relay claim <id> [--assignee X] [--force] [--watch]   (--force overrides existing claim; --watch also sets you as watcher)\n' +
   '  relay comment <id> "<message>"   (leave a note on the thread, no state change)\n' +
-  '  relay watch <id> [--state S] [--timeout sec]   (block until it changes; run in background)\n' +
+  '  relay watch <id> [--state S] [--timeout sec] [--continuous]   (block until it changes; --continuous emits an ndjson stream)\n' +
   '  relay watch --set <id>   (register RELAY_ACTOR as watcher without blocking)\n' +
   '  relay watch --state review [--project P|--all]  (block until a task enters that queue)\n' +
   '  relay link <id> --pr owner/repo#123   (link a GitHub PR; needs gh)\n' +
