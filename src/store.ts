@@ -188,6 +188,7 @@ export interface ClaimInput {
   note?: string
   branch?: string
   worktree?: string
+  force?: boolean
 }
 
 export interface TaskStore {
@@ -324,6 +325,11 @@ export class SqliteTaskStore implements TaskStore {
           ) {
             throw new Error(
               `Task is in '${task.state}'; reopen deliberately with: update ${id} --state doing --note "<why>"`
+            )
+          }
+          if (task.state === 'doing' && task.assignee && !input.force) {
+            throw new Error(
+              `Task is already claimed by "${task.assignee}". Pass --force to override.`
             )
           }
           applyChanges(
