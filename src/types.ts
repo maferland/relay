@@ -33,6 +33,8 @@ export function requiresNote(from: State, to: State): boolean {
 export interface TaskEvent {
   at: string
   actor?: string
+  actorKind?: 'human' | 'agent'
+  sessionId?: string
   from?: State
   to?: State
   note?: string
