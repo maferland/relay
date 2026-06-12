@@ -21,6 +21,7 @@ interface CardProps {
   onOpen: (id: string) => void
   onAction: (task: UiTask, t: Transition) => void
   onResolve: (task: UiTask) => void
+  onNavigateProject: (project: string) => void
 }
 
 function InboxCard({
@@ -31,6 +32,7 @@ function InboxCard({
   onOpen,
   onAction,
   onResolve,
+  onNavigateProject,
 }: CardProps) {
   const trans = transitionsFor(task.state)
   const primary = trans.find((t) => t.primary) || trans[0]
@@ -52,7 +54,7 @@ function InboxCard({
             project={task.project}
             onClick={(e) => {
               e.stopPropagation()
-              onOpen(task.id)
+              onNavigateProject(task.project)
             }}
           />
         </div>
@@ -215,6 +217,7 @@ interface InboxProps {
   onOpen: (id: string) => void
   onAction: (task: UiTask, t: Transition) => void
   onResolve: (task: UiTask) => void
+  onNavigateProject: (project: string) => void
 }
 
 export function Inbox({
@@ -226,6 +229,7 @@ export function Inbox({
   onOpen,
   onAction,
   onResolve,
+  onNavigateProject,
 }: InboxProps) {
   const oldestFirst = (a: UiTask, b: UiTask) => a.updatedAt - b.updatedAt
   // Escalated takes precedence so a task never appears in two groups.
@@ -246,7 +250,7 @@ export function Inbox({
 
   if (loading) return <InboxSkeleton />
 
-  const shared = { actors, now, onOpen, onAction, onResolve }
+  const shared = { actors, now, onOpen, onAction, onResolve, onNavigateProject }
 
   return (
     <div className="page">
