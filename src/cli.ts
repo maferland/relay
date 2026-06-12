@@ -329,6 +329,7 @@ async function claimCommand(args: ParsedArgs): Promise<void> {
       note: val(args.flags.note),
       branch: val(args.flags.branch) ?? git.branch,
       worktree: val(args.flags.worktree) ?? git.worktree,
+      force: !!args.flags.force,
     })
     .catch((e: Error) => die(e.message))
   printTask(task, !!args.flags.json)
@@ -594,7 +595,7 @@ const HELP =
   '  relay show <id> [--json]\n' +
   '  relay update <id> [--state S] [--expect-state S] [--assignee X] [--note ..] [--title ..] [--desc ..] [--plan ..]\n' +
   '  relay update <id> [--reviewed|--clear-reviewed] [--tested|--clear-tested]   (human checkpoints; reviewed tasks need --tested for merged)\n' +
-  '  relay claim <id> [--assignee X]\n' +
+  '  relay claim <id> [--assignee X] [--force]   (--force overrides an existing claim)\n' +
   '  relay comment <id> "<message>"   (leave a note on the thread, no state change)\n' +
   '  relay watch <id> [--state S] [--timeout sec]   (block until it changes; run in background)\n' +
   '  relay watch --state review [--project P|--all]  (block until a task enters that queue)\n' +
