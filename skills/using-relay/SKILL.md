@@ -62,9 +62,13 @@ relay update task-1a2b3c4d --state review --expect-state doing \
 
 `claim` records **where** you are working: it auto-stamps the current git `branch` and
 `worktree` onto the task (run it from the worktree where you'll do the work). A coordinator then
-knows exactly where to look. `claim` only picks up open work: a task already in `review`,
-`ready`, or `merged` must be reopened deliberately with `update --state doing --note "<why>"`,
-not claimed.
+knows exactly where to look. `claim` only picks up open work:
+
+- A task already in `review`, `ready`, or `merged` must be reopened deliberately with
+  `update --state doing --note "<why>"`, not claimed.
+- A task in `doing` that is already assigned to another agent is rejected with a clear error.
+  Pass `--force` to override (use this when the prior agent is known to be dead):
+  `relay claim task-1a2b3c4d --force`
 
 **Guarding against the send-back race.** A coordinator may send a task back while the agent is
 still finishing. Always check `relay show <id>` right before pushing to `review`; if the state
@@ -83,7 +87,8 @@ relay show task-1a2b3c4d                        # full detail + history exchange
 ```
 
 - **Pass QA:** `relay update task-1a2b3c4d --state ready --note "QA passed"` hands it to the human to review and merge.
-- **Merge (human):** `relay update task-1a2b3c4d --state merged --tested --note "shipped"`. A reviewed task needs `--tested` to reach `merged`.
+- **Code-review (human):** `relay update task-1a2b3c4d --reviewed` marks the task human-reviewed (use `--clear-reviewed` to undo). Symmetrically, `--tested` / `--clear-tested` marks it human-tested.
+- **Merge (human):** `relay update task-1a2b3c4d --state merged --tested --note "shipped"`. A task that passed through `review` requires `--tested` to reach `merged`; the store rejects the transition otherwise.
 - **Reject (send back):** `relay update task-1a2b3c4d --state todo --note "Login works but logout 500s - see step 3"`
 
 You can also QA by delegating: spawn a subagent whose job is to verify a task in `review` and
@@ -189,7 +194,8 @@ looked". Use `--json` for machine-readable output.
 | `relay list [--state] [--assignee] [--project\|--all] [--since] [--json]`       | filtered list                                          |
 | `relay show <id> [--json]`                                                      | one task + full history                                |
 | `relay update <id> [--state] [--assignee] [--note] [--title] [--desc] [--plan]` | change + record note                                   |
-| `relay claim <id> [--assignee]`                                                 | assign to self, move to `doing`, stamp branch/worktree |
+| `relay update <id> [--reviewed\|--clear-reviewed] [--tested\|--clear-tested]`   | set/clear human checkpoint flags                       |
+| `relay claim <id> [--assignee] [--force]`                                       | assign to self, move to `doing`, stamp branch/worktree |
 | `relay comment <id> "<message>"`                                                | add a note to the thread, no state change              |
 | `relay watch <id> [--state] [--timeout] [--json]`                               | block until a task changes (run in background)         |
 | `relay escalate <id> --note "<what you need>"`                                  | flag as needing a human                                |
