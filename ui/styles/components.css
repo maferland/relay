@@ -470,6 +470,15 @@
 .meta .mono {
   color: var(--text-muted);
 }
+.meta-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.meta-link:hover .mono {
+  color: var(--text);
+}
 .dotsep {
   width: 3px;
   height: 3px;

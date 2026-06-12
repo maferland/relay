@@ -442,6 +442,9 @@ export function App() {
   function goBoard(board: BoardFilters) {
     navigate({ screen: 'board', taskId: null, board })
   }
+  function navigateToProject(project: string) {
+    goBoard({ ...DEFAULT_FILTERS, proj: project })
+  }
   // Sidebar repo click: filter the current screen in place rather than always jumping to the board.
   function selectRepo(next: string | null) {
     if (view === 'inbox') {
@@ -789,6 +792,7 @@ export function App() {
               onOpen={openTask}
               onAction={onAction}
               onResolve={onResolve}
+              onNavigateProject={navigateToProject}
             />
           )}
           {view === 'board' && (
@@ -815,6 +819,7 @@ export function App() {
               onComment={onComment}
               onResolve={onResolve}
               onCheckpoint={onCheckpoint}
+              onNavigateProject={navigateToProject}
             />
           )}
         </div>
