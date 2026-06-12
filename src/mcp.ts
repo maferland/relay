@@ -155,6 +155,11 @@ export function registerTools(server: McpServer, store: TaskStore): void {
           .describe(
             'Set/clear the human-tested checkpoint; required for merged'
           ),
+        expectedState: StateEnum.optional().describe(
+          'Guard against a race: fail if the current state is not this value. ' +
+            'Pass the state you believe the task is in (e.g. "doing") when pushing to review, ' +
+            'so a concurrent send-back causes an error instead of silently overwriting it.'
+        ),
         note: z.string().optional(),
         actor: z.string().optional(),
       }),

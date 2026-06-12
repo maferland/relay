@@ -73,6 +73,9 @@ export interface Task {
 
 export interface TaskChanges {
   state?: State
+  // Guarded transition: fail if the current task state differs from this value.
+  // Agents use it to catch a send-back that arrived before their push-to-review.
+  expectedState?: State
   assignee?: string
   title?: string
   description?: string
