@@ -65,6 +65,7 @@ export interface Task {
   labels?: string[] // free-form tags, orthogonal to state (e.g. awaiting-code-review)
   links?: TaskLink[] // remote counterparts (PRs, tickets) a connector can poll
   assignee?: string
+  watcher?: string // orchestrator agent for the task's lifecycle; persists across send-backs
   createdBy?: string
   createdAt: string
   updatedAt: string // drives `--since` filtering
@@ -88,4 +89,5 @@ export interface TaskChanges {
   addLink?: TaskLink // add a link, replacing any with the same system+ref
   humanReviewed?: boolean // true to set, false to clear
   humanTested?: boolean // true to set, false to clear
+  watcher?: string | null // set to a name to register; null to clear
 }
