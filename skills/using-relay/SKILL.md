@@ -53,7 +53,11 @@ contains a leading dash, put it after a `--` sentinel: `relay add -- --weird tit
 relay list --state todo --assignee worker-1   # what's assigned to me
 relay claim task-1a2b3c4d                      # → doing, assigned to me
 # …do the work…
-relay update task-1a2b3c4d --state review --note "Fixed; ready for QA. Touched auth/redirect.ts"
+# Re-read the task state immediately before transitioning to review:
+relay show task-1a2b3c4d
+# If state is still "doing", proceed. If it was moved backward (send-back), STOP — don't push.
+relay update task-1a2b3c4d --state review --expect-state doing \
+  --note "Fixed; ready for QA. Touched auth/redirect.ts"
 ```
 
 `claim` records **where** you are working: it auto-stamps the current git `branch` and
@@ -61,6 +65,12 @@ relay update task-1a2b3c4d --state review --note "Fixed; ready for QA. Touched a
 knows exactly where to look. `claim` only picks up open work: a task already in `review`,
 `ready`, or `merged` must be reopened deliberately with `update --state doing --note "<why>"`,
 not claimed.
+
+**Guarding against the send-back race.** A coordinator may send a task back while the agent is
+still finishing. Always check `relay show <id>` right before pushing to `review`; if the state
+is not `doing`, the task was sent back — do not push, read the rejection note, and pick it up
+again from `todo`. The `--expect-state doing` flag is a second layer: the store rejects the
+transition if the task moved after your check.
 
 ### Coordinating / QA
 
