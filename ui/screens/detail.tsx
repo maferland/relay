@@ -303,6 +303,7 @@ interface DetailProps {
     task: UiTask,
     flags: { reviewed?: boolean; tested?: boolean }
   ) => void
+  onNavigateProject: (project: string) => void
 }
 
 export function Detail({
@@ -315,6 +316,7 @@ export function Detail({
   onComment,
   onResolve,
   onCheckpoint,
+  onNavigateProject,
 }: DetailProps) {
   if (!task) return null
   const actions = humanActions(task.state)
@@ -389,7 +391,13 @@ export function Detail({
             <h2>{task.title}</h2>
             <div className="d-badges">
               <MoveMenu task={task} onAction={onAction} />
-              <ProjectTag project={task.project} />
+              <ProjectTag
+                project={task.project}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onNavigateProject(task.project)
+                }}
+              />
               {prLinks.map((l) => {
                 const num = prNumber(l.ref)
                 const label = num ? `PR #${num}` : l.ref
@@ -500,13 +508,13 @@ export function Detail({
             </div>
             <div className="dmeta">
               <MetaRow icon="folder" k="project">
-                <a
-                  href={`/board?project=${encodeURIComponent(task.project)}`}
+                <button
                   className="proj-link mono"
                   style={mono}
+                  onClick={() => onNavigateProject(task.project)}
                 >
                   {task.project}
-                </a>
+                </button>
               </MetaRow>
               {task.labels?.length ? (
                 <MetaRow icon="tag" k="labels">

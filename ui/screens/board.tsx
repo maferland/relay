@@ -305,10 +305,17 @@ export function Board({
                         <span className="row-id mono">{t.id}</span>
                         {!grouped && <span className="dotsep" />}
                         {!grouped && (
-                          <span className="meta">
+                          <button
+                            className="meta meta-link"
+                            title={`Filter by repo: ${t.project}`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setProj(t.project)
+                            }}
+                          >
                             <Icon name="folder" size={11} />{' '}
                             <span className="mono">{t.project}</span>
-                          </span>
+                          </button>
                         )}
                         {t.branch && <span className="dotsep" />}
                         {t.branch && (
