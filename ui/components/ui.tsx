@@ -9,6 +9,7 @@ import type { Actor, State, Transition, UiTask } from '../lib/types.ts'
 import { STATE_META, transitionsFor } from '../lib/transitions.ts'
 
 const PATHS: Record<string, string> = {
+  copy: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2',
   search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3',
   filter: 'M3 5h18M6 12h12M10 19h4',
   chevDown: 'M6 9l6 6 6-6',
@@ -205,6 +206,31 @@ export function LabelChips({ labels }: { labels?: string[] }) {
         <LabelChip key={l} label={l} />
       ))}
     </>
+  )
+}
+
+export function CopyButton({
+  text,
+  size = 14,
+}: {
+  text: string
+  size?: number
+}) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      type="button"
+      className="copy-btn"
+      title="Copy"
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1500)
+        })
+      }}
+    >
+      <Icon name={copied ? 'check' : 'copy'} size={size} />
+    </button>
   )
 }
 

@@ -8,6 +8,7 @@ import {
 import {
   Avatar,
   Button,
+  CopyButton,
   Icon,
   LabelChips,
   MoveMenu,
@@ -498,10 +499,14 @@ export function Detail({
               })}
             </div>
             <div className="dmeta">
-              <MetaRow icon="folder" k="repo">
-                <span className="mono" style={mono}>
+              <MetaRow icon="folder" k="project">
+                <a
+                  href={`/board?project=${encodeURIComponent(task.project)}`}
+                  className="proj-link mono"
+                  style={mono}
+                >
                   {task.project}
-                </span>
+                </a>
               </MetaRow>
               {task.labels?.length ? (
                 <MetaRow icon="tag" k="labels">
@@ -539,21 +544,29 @@ export function Detail({
               ) : null}
               {task.branch ? (
                 <MetaRow icon="branch" k="branch">
-                  {branchUrl ? (
-                    <a
-                      className="mono branch-link"
-                      style={mono}
-                      href={branchUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {task.branch}
-                    </a>
-                  ) : (
-                    <span className="mono" style={mono}>
-                      {task.branch}
-                    </span>
-                  )}
+                  <span className="meta-val-copy">
+                    {branchUrl ? (
+                      <a
+                        className="mono branch-link meta-truncate"
+                        style={mono}
+                        href={branchUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={task.branch}
+                      >
+                        {task.branch}
+                      </a>
+                    ) : (
+                      <span
+                        className="mono meta-truncate"
+                        style={mono}
+                        title={task.branch}
+                      >
+                        {task.branch}
+                      </span>
+                    )}
+                    <CopyButton text={task.branch} size={13} />
+                  </span>
                 </MetaRow>
               ) : (
                 <MetaRow icon="branch" k="branch">
@@ -564,8 +577,15 @@ export function Detail({
               )}
               {task.worktree && (
                 <MetaRow icon="worktree" k="worktree">
-                  <span className="mono" style={mono}>
-                    {task.worktree}
+                  <span className="meta-val-copy">
+                    <span
+                      className="mono meta-truncate"
+                      style={mono}
+                      title={task.worktree}
+                    >
+                      {task.worktree}
+                    </span>
+                    <CopyButton text={task.worktree} size={13} />
                   </span>
                 </MetaRow>
               )}
