@@ -3,6 +3,8 @@ export type State = 'todo' | 'doing' | 'review' | 'ready' | 'merged' | 'blocked'
 export interface UiEvent {
   at: number // epoch ms
   actor: string
+  actorKind?: 'human' | 'agent'
+  sessionId?: string
   from: State | null
   to: State | null
   note: string

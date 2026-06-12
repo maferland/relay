@@ -15,6 +15,8 @@ import {
   gitContext,
   openBrowser,
   resolveActor,
+  resolveActorKind,
+  SESSION_ID,
   taskDetailUrl,
 } from './util.js'
 import { operatorName, readConfig, writeConfig } from './config.js'
@@ -220,7 +222,8 @@ async function addCommand(args: ParsedArgs): Promise<void> {
       2
     )
   }
-  const actor = resolveActor(val(args.flags.actor))
+  const actorFlag = val(args.flags.actor)
+  const actor = resolveActor(actorFlag)
   let task: Task
   try {
     task = buildTask({
@@ -235,6 +238,8 @@ async function addCommand(args: ParsedArgs): Promise<void> {
       labels:
         args.flags.label !== undefined ? csv(val(args.flags.label)) : undefined,
       actor,
+      actorKind: resolveActorKind(actorFlag),
+      sessionId: SESSION_ID,
       note: val(args.flags.note),
     })
   } catch (e) {
@@ -316,9 +321,12 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
   if (args.flags.watcher !== undefined)
     changes.watcher = val(args.flags.watcher) ?? null
 
+  const updateActorFlag = val(args.flags.actor)
   const task = await new SqliteTaskStore()
     .update(id, changes, {
-      actor: resolveActor(val(args.flags.actor)),
+      actor: resolveActor(updateActorFlag),
+      actorKind: resolveActorKind(updateActorFlag),
+      sessionId: SESSION_ID,
       note: val(args.flags.note),
     })
     .catch((e: Error) => die(e.message))
@@ -328,12 +336,15 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
 async function claimCommand(args: ParsedArgs): Promise<void> {
   const [id] = args.positional
   if (!id) die('usage: relay claim <id> [--assignee ..]', 2)
-  const actor = resolveActor(val(args.flags.actor))
+  const claimActorFlag = val(args.flags.actor)
+  const actor = resolveActor(claimActorFlag)
   const git = gitContext()
   const task = await new SqliteTaskStore()
     .claim(id, {
       assignee: val(args.flags.assignee) ?? actor,
       actor,
+      actorKind: resolveActorKind(claimActorFlag),
+      sessionId: SESSION_ID,
       note: val(args.flags.note),
       branch: val(args.flags.branch) ?? git.branch,
       worktree: val(args.flags.worktree) ?? git.worktree,
@@ -348,9 +359,12 @@ async function escalateCommand(args: ParsedArgs): Promise<void> {
   const [id] = args.positional
   if (!id)
     die('usage: relay escalate <id> --note "<what you need from a human>"', 2)
+  const escalateActorFlag = val(args.flags.actor)
   const task = await new SqliteTaskStore()
     .escalate(id, {
-      actor: resolveActor(val(args.flags.actor)),
+      actor: resolveActor(escalateActorFlag),
+      actorKind: resolveActorKind(escalateActorFlag),
+      sessionId: SESSION_ID,
       note: val(args.flags.note),
     })
     .catch((e: Error) => die(e.message))
@@ -360,9 +374,12 @@ async function escalateCommand(args: ParsedArgs): Promise<void> {
 async function resolveCommand(args: ParsedArgs): Promise<void> {
   const [id] = args.positional
   if (!id) die('usage: relay resolve <id> [--note ..]', 2)
+  const resolveActorFlag = val(args.flags.actor)
   const task = await new SqliteTaskStore()
     .resolve(id, {
-      actor: resolveActor(val(args.flags.actor)),
+      actor: resolveActor(resolveActorFlag),
+      actorKind: resolveActorKind(resolveActorFlag),
+      sessionId: SESSION_ID,
       note: val(args.flags.note),
     })
     .catch((e: Error) => die(e.message))
@@ -374,8 +391,14 @@ async function commentCommand(args: ParsedArgs): Promise<void> {
   const note = (val(args.flags.note) ?? rest.join(' ')).trim()
   if (!id || !note)
     die('usage: relay comment <id> "<message>"  (or --note "<message>")', 2)
+  const commentActorFlag = val(args.flags.actor)
   const task = await new SqliteTaskStore()
-    .comment(id, { actor: resolveActor(val(args.flags.actor)), note })
+    .comment(id, {
+      actor: resolveActor(commentActorFlag),
+      actorKind: resolveActorKind(commentActorFlag),
+      sessionId: SESSION_ID,
+      note,
+    })
     .catch((e: Error) => die(e.message))
   printTask(task, !!args.flags.json)
 }

@@ -55,6 +55,8 @@ export interface NewTaskInput {
   worktree?: string
   assignee?: string
   actor?: string
+  actorKind?: 'human' | 'agent'
+  sessionId?: string
   note?: string
   labels?: string[]
 }
@@ -85,7 +87,14 @@ export function buildTask(input: NewTaskInput): Task {
     createdAt: now,
     updatedAt: now,
     history: [
-      { at: now, actor: input.actor, to: state, note: note ?? 'created' },
+      {
+        at: now,
+        actor: input.actor,
+        actorKind: input.actorKind,
+        sessionId: input.sessionId,
+        to: state,
+        note: note ?? 'created',
+      },
     ],
   }
 }
@@ -94,11 +103,18 @@ export function buildTask(input: NewTaskInput): Task {
 function applyChanges(
   task: Task,
   changes: TaskChanges,
-  meta: { actor?: string; note?: string }
+  meta: {
+    actor?: string
+    actorKind?: 'human' | 'agent'
+    sessionId?: string
+    note?: string
+  }
 ): void {
   const note = meta.note?.trim()
   const event: TaskEvent = { at: new Date().toISOString() }
   if (meta.actor) event.actor = meta.actor
+  if (meta.actorKind) event.actorKind = meta.actorKind
+  if (meta.sessionId) event.sessionId = meta.sessionId
   if (note) event.note = note
   // Compare-and-swap guard: catch a send-back that arrived before the agent's push.
   if (
@@ -186,6 +202,8 @@ export interface TaskFilter {
 export interface ClaimInput {
   assignee: string
   actor?: string
+  actorKind?: 'human' | 'agent'
+  sessionId?: string
   note?: string
   branch?: string
   worktree?: string
@@ -200,12 +218,41 @@ export interface TaskStore {
   update(
     id: string,
     changes: TaskChanges,
-    meta: { actor?: string; note?: string }
+    meta: {
+      actor?: string
+      actorKind?: 'human' | 'agent'
+      sessionId?: string
+      note?: string
+    }
   ): Promise<Task>
   claim(id: string, input: ClaimInput): Promise<Task>
-  escalate(id: string, meta: { actor?: string; note?: string }): Promise<Task>
-  comment(id: string, meta: { actor?: string; note?: string }): Promise<Task>
-  resolve(id: string, meta: { actor?: string; note?: string }): Promise<Task>
+  escalate(
+    id: string,
+    meta: {
+      actor?: string
+      actorKind?: 'human' | 'agent'
+      sessionId?: string
+      note?: string
+    }
+  ): Promise<Task>
+  comment(
+    id: string,
+    meta: {
+      actor?: string
+      actorKind?: 'human' | 'agent'
+      sessionId?: string
+      note?: string
+    }
+  ): Promise<Task>
+  resolve(
+    id: string,
+    meta: {
+      actor?: string
+      actorKind?: 'human' | 'agent'
+      sessionId?: string
+      note?: string
+    }
+  ): Promise<Task>
 }
 
 interface Row {
@@ -297,7 +344,12 @@ export class SqliteTaskStore implements TaskStore {
   async update(
     id: string,
     changes: TaskChanges,
-    meta: { actor?: string; note?: string }
+    meta: {
+      actor?: string
+      actorKind?: 'human' | 'agent'
+      sessionId?: string
+      note?: string
+    }
   ): Promise<Task> {
     validateId(id)
     return withBusyRetry(() =>
@@ -343,7 +395,12 @@ export class SqliteTaskStore implements TaskStore {
               worktree: input.worktree,
               watcher: input.watch ? input.assignee : undefined,
             },
-            { actor: input.actor, note: input.note ?? 'claimed' }
+            {
+              actor: input.actor,
+              actorKind: input.actorKind,
+              sessionId: input.sessionId,
+              note: input.note ?? 'claimed',
+            }
           )
           this.writeRow(task)
           return task
@@ -355,7 +412,12 @@ export class SqliteTaskStore implements TaskStore {
   // Flag a task as waiting on a human (orthogonal to state). The note says what's needed.
   async escalate(
     id: string,
-    meta: { actor?: string; note?: string }
+    meta: {
+      actor?: string
+      actorKind?: 'human' | 'agent'
+      sessionId?: string
+      note?: string
+    }
   ): Promise<Task> {
     validateId(id)
     const note = meta.note?.trim()
@@ -371,7 +433,14 @@ export class SqliteTaskStore implements TaskStore {
           task.needsHuman = true
           const at = new Date().toISOString()
           task.updatedAt = at
-          task.history.push({ at, actor: meta.actor, note, kind: 'escalate' })
+          task.history.push({
+            at,
+            actor: meta.actor,
+            actorKind: meta.actorKind,
+            sessionId: meta.sessionId,
+            note,
+            kind: 'escalate',
+          })
           this.writeRow(task)
           return task
         })
@@ -382,7 +451,12 @@ export class SqliteTaskStore implements TaskStore {
   // Append a note to the thread without changing state (agent-to-agent back-and-forth).
   async comment(
     id: string,
-    meta: { actor?: string; note?: string }
+    meta: {
+      actor?: string
+      actorKind?: 'human' | 'agent'
+      sessionId?: string
+      note?: string
+    }
   ): Promise<Task> {
     validateId(id)
     const note = meta.note?.trim()
@@ -394,7 +468,14 @@ export class SqliteTaskStore implements TaskStore {
           if (!task) throw new Error(`Task "${id}" not found`)
           const at = new Date().toISOString()
           task.updatedAt = at
-          task.history.push({ at, actor: meta.actor, note, kind: 'comment' })
+          task.history.push({
+            at,
+            actor: meta.actor,
+            actorKind: meta.actorKind,
+            sessionId: meta.sessionId,
+            note,
+            kind: 'comment',
+          })
           this.writeRow(task)
           return task
         })
@@ -404,7 +485,12 @@ export class SqliteTaskStore implements TaskStore {
 
   async resolve(
     id: string,
-    meta: { actor?: string; note?: string }
+    meta: {
+      actor?: string
+      actorKind?: 'human' | 'agent'
+      sessionId?: string
+      note?: string
+    }
   ): Promise<Task> {
     validateId(id)
     return withBusyRetry(() =>
@@ -418,6 +504,8 @@ export class SqliteTaskStore implements TaskStore {
           task.history.push({
             at,
             actor: meta.actor,
+            actorKind: meta.actorKind,
+            sessionId: meta.sessionId,
             note: meta.note?.trim() || 'resolved (no longer needs a human)',
             kind: 'resolve',
           })
