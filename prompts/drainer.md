@@ -24,6 +24,7 @@ Set a unique actor for your session:
 
 Register so the coordinator can see you:
   relay register --project <project>
+  /rename drainer [<project>]
 
 ## Loop
 
@@ -45,6 +46,7 @@ If nothing is available, wait 30s and retry up to 3 times, then stop.
 
 Verify it's yours — both project and assignee must match:
   relay show <id>
+  /rename drainer [<id>]
 
 If the project is wrong or the assignee isn't you, release and stop:
   relay update <id> --state todo --assignee ""
