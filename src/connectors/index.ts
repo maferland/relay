@@ -27,8 +27,64 @@ export function statusLabels(s: RemoteStatus): string[] {
   return out
 }
 
-// Poll one link; if its summary changed, record it on the thread + tag it, and
-// return the updated task. Returns null when there's no connector or no change.
+// Drive task state from PR signals. Only acts on tasks in `review` or `ready`.
+async function driveTaskState(
+  store: TaskStore,
+  id: string,
+  link: TaskLink,
+  status: RemoteStatus,
+  actor?: string
+): Promise<Task | null> {
+  const task = await store.get(id)
+  if (!task) return null
+  if (task.state !== 'review' && task.state !== 'ready') return null
+
+  if (status.merged) {
+    return store.update(
+      id,
+      {
+        state: 'merged',
+        addLink: { ...link, lastStatus: status.summary },
+        addLabels: statusLabels(status),
+        humanTested: true,
+      },
+      { actor, note: `PR merged: ${link.ref}` }
+    )
+  }
+
+  if (status.reviewDecision === 'CHANGES_REQUESTED') {
+    return store.update(
+      id,
+      {
+        state: 'todo',
+        addLink: { ...link, lastStatus: status.summary },
+        addLabels: statusLabels(status),
+      },
+      { actor, note: `Changes requested: ${status.summary}` }
+    )
+  }
+
+  if (status.checks === 'fail') {
+    return store.escalate(id, { actor, note: `CI failing: ${status.summary}` })
+  }
+
+  if (status.reviewDecision === 'APPROVED' && status.checks === 'pass') {
+    return store.update(
+      id,
+      {
+        state: 'ready',
+        addLink: { ...link, lastStatus: status.summary },
+        addLabels: statusLabels(status),
+      },
+      { actor, note: `PR approved, CI green` }
+    )
+  }
+
+  return null
+}
+
+// Poll one link; if its summary changed, drive task state and record it on the thread.
+// Returns the updated task, or null when there is no change or no connector.
 export async function syncLink(
   store: TaskStore,
   id: string,
@@ -39,6 +95,11 @@ export async function syncLink(
   if (!connector) return null
   const status = await connector.poll(link)
   if (!status || status.summary === link.lastStatus) return null
+
+  const driven = await driveTaskState(store, id, link, status, actor)
+  if (driven) return driven
+
+  // Fallback for tasks not in review/ready, or status not mapped to a transition.
   return store.update(
     id,
     {

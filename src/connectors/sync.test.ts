@@ -29,8 +29,8 @@ describe('syncLink', () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  async function seed() {
-    const task = buildTask({ title: 'has a PR', project: 'demo' })
+  async function seed(state: 'todo' | 'review' | 'ready' = 'todo') {
+    const task = buildTask({ title: 'has a PR', project: 'demo', state })
     task.links = [{ system: 'fake', kind: 'pr', ref: 'o/r#1' }]
     await store.add(task)
     return task.id
@@ -70,5 +70,111 @@ describe('syncLink', () => {
     const link = first!.links![0]
     const second = await syncLink(store, id, link)
     expect(second).toBeNull()
+  })
+
+  describe('state driving (review/ready tasks)', () => {
+    it('sends task back to todo on CHANGES_REQUESTED', async () => {
+      const id = await seed('review')
+      nextStatus = {
+        reviewDecision: 'CHANGES_REQUESTED',
+        checks: 'pass',
+        merged: false,
+        summary: 'OPEN CHANGES_REQUESTED checks:pass',
+      }
+      const updated = await syncLink(store, id, {
+        system: 'fake',
+        kind: 'pr',
+        ref: 'o/r#1',
+      })
+      expect(updated!.state).toBe('todo')
+      expect(updated!.history.at(-1)!.note).toContain('Changes requested')
+      expect(updated!.labels).toContain('changes-requested')
+    })
+
+    it('escalates (needsHuman) on CI failure', async () => {
+      const id = await seed('review')
+      nextStatus = {
+        reviewDecision: undefined,
+        checks: 'fail',
+        merged: false,
+        summary: 'OPEN checks:fail',
+      }
+      const updated = await syncLink(store, id, {
+        system: 'fake',
+        kind: 'pr',
+        ref: 'o/r#1',
+      })
+      expect(updated!.needsHuman).toBe(true)
+      expect(updated!.history.at(-1)!.note).toContain('CI failing')
+    })
+
+    it('moves to ready when approved + CI green', async () => {
+      const id = await seed('review')
+      nextStatus = {
+        reviewDecision: 'APPROVED',
+        checks: 'pass',
+        merged: false,
+        summary: 'OPEN APPROVED checks:pass',
+      }
+      const updated = await syncLink(store, id, {
+        system: 'fake',
+        kind: 'pr',
+        ref: 'o/r#1',
+      })
+      expect(updated!.state).toBe('ready')
+      expect(updated!.history.at(-1)!.note).toBe('PR approved, CI green')
+    })
+
+    it('moves to merged when PR is merged', async () => {
+      const id = await seed('ready')
+      nextStatus = {
+        reviewDecision: 'APPROVED',
+        checks: 'pass',
+        merged: true,
+        summary: 'MERGED',
+      }
+      const updated = await syncLink(store, id, {
+        system: 'fake',
+        kind: 'pr',
+        ref: 'o/r#1',
+      })
+      expect(updated!.state).toBe('merged')
+      expect(updated!.humanTested).toBe(true)
+      expect(updated!.history.at(-1)!.note).toContain('PR merged')
+    })
+
+    it('does not drive state for tasks in todo/doing', async () => {
+      const id = await seed('todo')
+      nextStatus = {
+        reviewDecision: 'APPROVED',
+        checks: 'pass',
+        merged: false,
+        summary: 'OPEN APPROVED checks:pass',
+      }
+      const updated = await syncLink(store, id, {
+        system: 'fake',
+        kind: 'pr',
+        ref: 'o/r#1',
+      })
+      // should fall back to label-only update, not move to ready
+      expect(updated!.state).toBe('todo')
+      expect(updated!.history.at(-1)!.note).toContain('fake pr')
+    })
+
+    it('CHANGES_REQUESTED takes priority over CI failure', async () => {
+      const id = await seed('review')
+      nextStatus = {
+        reviewDecision: 'CHANGES_REQUESTED',
+        checks: 'fail',
+        merged: false,
+        summary: 'OPEN CHANGES_REQUESTED checks:fail',
+      }
+      const updated = await syncLink(store, id, {
+        system: 'fake',
+        kind: 'pr',
+        ref: 'o/r#1',
+      })
+      expect(updated!.state).toBe('todo')
+    })
   })
 })
