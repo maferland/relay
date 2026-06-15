@@ -1,6 +1,6 @@
 ---
 name: coordinate
-description: Run a relay coordinator session — watch for tasks in review, run QA, merge passing PRs, and steer drainers. Use when asked to "coordinate relay", "QA relay tasks", or "start a coordinator".
+description: Run a relay coordinator session — watch for tasks in review, run QA, get human sign-off, then merge. Use when asked to "coordinate relay", "QA relay tasks", or "start a coordinator".
 ---
 
 # Relay Coordinator
@@ -58,14 +58,18 @@ Any failure → send back (update the existing task, never create a new one):
 relay update <id> --state todo --note "<exact failure and what to fix>"
 ```
 
-### 4. Real-world testing
+### 4. Real-world testing (MANDATORY — no exceptions)
 
-Don't stop at "tests pass."
+**Automated tests passing is not enough. You must use the feature as a human operator would.**
 
-- **CLI changes**: run the binary against a temp store; verify correct output, not just no-crash.
-- **UI changes**: `bun run build:ui`, start `relay ui` on a free port, drive with Playwright. Use `/pinpoint:review` for layout/UX — don't approve subjective UI changes unverified.
-- **Store/model changes**: create → mutate → verify the stored shape in a temp dir.
-- **Docs/skill changes**: read the diff as if following it as an agent. Does the guidance match the code?
+Ask yourself: "If I handed this to a user right now, would it work?" Then go find out. Boot the actual binary or the running UI. Walk through the feature. Try the edge cases. Break it if you can.
+
+- **CLI changes**: build the binary (`bun run build`), run it against a temp store seeded with realistic data. Execute the changed commands. Read the output. Is it correct? Does it handle bad input gracefully? Does anything adjacent regress?
+- **UI changes**: `bun run build:ui`, start `relay ui` on a free port against a seeded temp store, open it in a browser, click through the changed flow. Use `/pinpoint:review` for anything visual — do not eyeball layout in your head. Drive it with Playwright for interactions.
+- **Store/model changes**: open a temp dir, run the CLI through a full create → mutate → read cycle, inspect the stored state directly. Does the shape match what the code claims?
+- **Docs/skill changes**: follow the instructions yourself, step by step, as if you are a fresh agent reading them for the first time. Does every command work? Does the guidance match the current code behavior exactly?
+
+If you cannot complete live testing for any reason, send the task back with a clear note on what was untestable. Do not move to code review without live testing done.
 
 ### 5. Code review
 
@@ -74,7 +78,27 @@ Don't stop at "tests pass."
 - Style consistent with surrounding code?
 - Do new tests actually break when the code is wrong?
 
-### 6. Merge
+### 6. Hand off to human (you are now blocked)
+
+Once automated checks, live testing, and code review all pass, mark the task ready and stop. You cannot merge without human sign-off.
+
+```bash
+relay update <id> --state ready --reviewed \
+  --note "QA passed. Verified: <what you tested and how>. PR #N ready to merge."
+```
+
+Then tell your human **loudly and clearly**:
+
+> **Blocked — waiting for your review.**
+> Task `<id>` passed all checks. PR #N is ready to merge.
+> Here is what I verified: <brief summary>.
+> **Please review the PR and tell me to merge, or send it back with feedback.**
+
+Do not continue the watch loop. Do not merge on your own. Wait for the human's explicit go-ahead before proceeding to step 7.
+
+### 7. Merge (only after explicit human approval)
+
+When the human says to merge:
 
 ```bash
 gh pr merge <n> --squash
@@ -82,7 +106,9 @@ relay update <id> --state merged --tested --note "Merged PR #N"
 git worktree remove .worktrees/verify-<id> --force
 ```
 
-### 7. Steer
+Then resume the watch loop.
+
+### 8. Steer
 
 ```bash
 relay list --project <project> --state todo
