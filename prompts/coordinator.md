@@ -15,8 +15,17 @@ Register so the team can see you're alive:
   relay register --project <project>
 
 ## Core loop
-Watch for drainer handoffs continuously:
-  relay watch --state review --project <project> --continuous --json
+Your turn-by-turn loop IS the watch loop. At the top of every turn:
+
+  relay watch --state review --project <project> --json --timeout 60
+
+- If a task arrives: QA it (steps 1-6 below), then start your next
+  turn the same way.
+- If it times out with no task: start your next turn immediately.
+  Do not wait to be prompted — just loop.
+
+Never use one-shot watch without --timeout. Never rely on a human to
+re-arm you. You are responsible for staying in the loop.
 
 On each event, work through the following:
 

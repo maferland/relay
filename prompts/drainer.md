@@ -54,13 +54,20 @@ All must pass. Fix failures before handing off — do not send broken
 work to the coordinator.
 
 ### 6. Check for send-backs before handing off
-Re-read the task immediately before transitioning:
+Re-read the task immediately before transitioning — the coordinator
+may have sent it back while you were working:
   relay show <id>
 
-If state is no longer `doing` (the coordinator sent it back while you
-were working), abandon this iteration without pushing:
+If state is no longer `doing`, abandon without pushing:
   git -C <repo> worktree remove .worktrees/<slug> --force
 Then loop back to step 1.
+
+While waiting on the coordinator after handing off, watch for
+send-backs so you react immediately rather than waiting to be prompted:
+  relay watch <id> --json --timeout 300
+
+If it returns with state `todo` and a note, pick it back up in your
+next loop iteration.
 
 ### 7. Commit
 One conventional commit per task. No em-dashes in the message.
