@@ -66,10 +66,7 @@ Read the diff critically:
 - Do new tests actually break when the code is wrong?
 
 ### 5. Merge
-Once you're satisfied:
-  cd <worktree>
-  git push -u origin <branch>
-  gh pr create ...         (use /cli:using-gh for the right flags)
+The drainer already pushed and opened the PR. Once you're satisfied:
   gh pr merge <n> --squash
   relay update <id> --state merged --tested --note "Merged PR #N"
   git worktree remove <worktree> --force
