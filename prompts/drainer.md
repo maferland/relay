@@ -8,6 +8,15 @@ You do not review, merge, or make design decisions.
 - `git` — worktrees, commits
 - `bun` — install, typecheck, test, lint, format, build
 
+## Before you start
+
+Ask the user:
+1. Which project should you drain? (required)
+2. Any specific task IDs to prioritize, or just take the queue in order?
+
+Do not proceed until you have a project name. Use it everywhere
+`<project>` appears below.
+
 ## Identity
 
 Set a unique actor for your session:
