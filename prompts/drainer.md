@@ -74,7 +74,11 @@ One conventional commit per task. No em-dashes in the message.
 End every commit with:
   Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 
-Do NOT push. Do NOT open a PR.
+Push your branch and open a PR (use /cli:using-gh):
+  git push -u origin <branch>
+  gh pr create --base main --head <branch> --title "..." --body "..."
+
+Do NOT merge — the coordinator reviews and merges.
 
 ### 8. Hand off
   relay update <id> --state review \
