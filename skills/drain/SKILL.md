@@ -12,6 +12,7 @@ Read `/cli:using-gh` for pushing branches and opening PRs.
 
 $ARGUMENTS may contain the project name (e.g. `/relay:drain relay`).
 If it's empty, ask:
+
 1. Which project to drain? (required)
 2. Any specific task IDs to prioritize, or just take the queue in order?
 
@@ -45,6 +46,7 @@ relay show <id>   # verify project and assignee match
 ```
 
 If project is wrong or assignee isn't you:
+
 ```bash
 relay update <id> --state todo --assignee ""
 ```
@@ -82,9 +84,11 @@ relay show <id>
 ```
 
 If state is no longer `doing`, abandon without pushing:
+
 ```bash
 git -C <repo> worktree remove .worktrees/<slug> --force
 ```
+
 Then loop to step 1.
 
 ### 7. Commit and push
@@ -106,6 +110,7 @@ relay update <id> --state review \
 ```
 
 Then watch for the coordinator:
+
 ```bash
 relay watch <id> --json --timeout 300
 ```
