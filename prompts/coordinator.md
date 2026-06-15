@@ -22,12 +22,15 @@ Register so the team can see you're alive:
 
 Your turn-by-turn loop IS the watch loop. At the top of every turn:
 
-  relay watch --state review --project <project> --json --timeout 60
+  relay watch --project <project> --json --timeout 60
 
-- If a task arrives: QA it (steps 1-6 below), then start your next
-  turn the same way.
-- If it times out with no task: start your next turn immediately.
-  Do not wait to be prompted — just loop.
+Watch the whole project, not just one state. Route on what arrives:
+- `state: review` → QA it (steps 1-6 below)
+- `state: ready` → remind the human if they haven't acted on the sign-off
+- `state: merged` → confirm task is marked correctly; if a PR merged externally, update the task
+- `state: todo` with a note → send-back you triggered, drainer picks it up, no action needed
+- `state: blocked` → escalate to the human
+- Timeout → start next turn immediately. Do not wait to be prompted.
 
 Never use one-shot watch without --timeout. Never rely on a human to
 re-arm you. You are responsible for staying in the loop.
