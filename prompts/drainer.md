@@ -54,6 +54,7 @@ If the project is wrong or the assignee isn't you, release and stop:
   git -C <repo> worktree add .worktrees/<slug> -b <branch> origin/main
 
 Work ONLY in that worktree. Never touch main or other worktrees.
+Keep this worktree alive until the task reaches `merged` (step 8).
 
 ### 4. Implement
 
@@ -75,24 +76,17 @@ From inside the worktree:
 All must pass. Fix failures before handing off — do not send broken
 work to the coordinator.
 
-### 6. Check for send-backs before handing off
+### 6. Check for concurrent send-backs
 
-Re-read the task immediately before transitioning — the coordinator
-may have sent it back while you were working:
+Re-read the task before transitioning — the coordinator may have sent
+it back while you were working:
   relay show <id>
 
 If state is no longer `doing`, abandon without pushing:
   git -C <repo> worktree remove .worktrees/<slug> --force
 Then loop back to step 1.
 
-While waiting on the coordinator after handing off, watch for
-send-backs so you react immediately rather than waiting to be prompted:
-  relay watch <id> --json --timeout 300
-
-If it returns with state `todo` and a note, pick it back up in your
-next loop iteration.
-
-### 7. Commit
+### 7. Commit and push
 
 One conventional commit per task. No em-dashes in the message.
 
@@ -102,23 +96,28 @@ Push your branch and open a PR:
 
 Do NOT merge — the coordinator reviews and merges.
 
-### 8. Hand off
+### 8. Hand off and wait
 
   relay update <id> --state review \
     --note "<what changed + how to verify, including any manual/UI steps>"
 
-### 9. Clean up the worktree
+Then watch the task for the coordinator's response:
+  relay watch <id> --json --timeout 300
 
-  git -C <repo> worktree remove .worktrees/<slug> --force
+- **Merged** (`state: merged`): clean up the worktree and loop to step 1.
+    git -C <repo> worktree remove .worktrees/<slug> --force
 
-Loop back to step 1.
+- **Sent back** (`state: todo` with a note): stay in the worktree, read
+  the note, fix the issue, go back to step 5. Do not open a new PR —
+  just force-push to the same branch.
+
+- **Timeout with no change**: run watch again. Do not abandon a
+  task mid-flight.
 
 ## Rules
 
 - Only work on tasks from the project you registered for.
   If relay show <id> returns a different project, it is not yours.
-- If a task comes back to todo with a note for you, pick it up in the
-  next iteration — it will appear unassigned in the queue.
 - Never make design decisions. If the task is ambiguous, add a note and
   move it to blocked:
     relay update <id> --state blocked \
