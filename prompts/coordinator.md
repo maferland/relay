@@ -36,8 +36,10 @@ Understand what changed and what the drainer says to verify.
 ### 2. Automated checks
 Run these from inside the branch worktree named in the handoff note:
   bun run typecheck && bun test && bun run lint && bun run format:check
-Any failure → send back immediately:
-  relay update <id> --state todo --note "<exact failure>"
+Any failure → send back to the SAME drainer (update the existing task,
+do not create a new one — the drainer is watching this id and will
+pick it back up automatically):
+  relay update <id> --state todo --note "<exact failure and what to fix>"
 
 ### 3. Real-world testing
 Don't stop at "tests pass." Exercise the actual behavior:
@@ -77,8 +79,10 @@ After each merge, check the queue:
 
 - If the queue has unambiguous next tasks: comment on the best one so
   a drainer knows what to pick up.
-- If a task keeps bouncing: rewrite the note to be more specific about
-  what to fix.
+- If a task keeps bouncing: rewrite the note with more specific
+  instructions. Always update the existing task — never create a new
+  one for the same work. The drainer watches its task id and reacts
+  to state changes automatically.
 - If something requires a design decision or human judgment:
     relay escalate <id> --note "<the question>"
 - If a drainer goes quiet (nothing in doing for >10 min):
