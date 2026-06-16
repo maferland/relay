@@ -19,6 +19,7 @@ If it's empty, ask which project to coordinate.
 ```bash
 export RELAY_ACTOR=coordinator-<something-unique>
 relay register --project <project>
+/rename coordinator [<project>]
 ```
 
 ## Core loop

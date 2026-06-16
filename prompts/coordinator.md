@@ -16,6 +16,7 @@ Set your actor for the session:
 
 Register so the team can see you're alive:
   relay register --project <project>
+  /rename coordinator [<project>]
 
 ## Core loop
 

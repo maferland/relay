@@ -20,6 +20,7 @@ If it's empty, ask:
 ```bash
 export RELAY_ACTOR=drainer-<something-unique>
 relay register --project <project>
+/rename drainer [<project>]
 ```
 
 ## Loop
@@ -40,6 +41,7 @@ If nothing available: wait 30s, retry up to 3 times, then stop.
 ```bash
 RELAY_ACTOR=$RELAY_ACTOR relay claim <id>
 relay show <id>   # verify project and assignee match
+/rename drainer [<id>]
 ```
 
 If project is wrong or assignee isn't you:
