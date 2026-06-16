@@ -49,13 +49,9 @@ rm -rf "$SKILLS_DIR/using-relay"
 cp -r skills/using-relay "$SKILLS_DIR/using-relay"
 echo -e "  ${GREEN}✓${RESET} Installed using-relay skill"
 
-# MCP is best-effort and only applies when Claude Code is present.
-if command -v claude >/dev/null 2>&1; then
-  claude mcp add --scope user relay -- relay mcp >/dev/null 2>&1 || true
-  echo -e "  ${GREEN}✓${RESET} Registered relay MCP server (user scope)"
-else
-  echo -e "  ${DIM}claude CLI not found — skipping skill/MCP registration was partial.${RESET}"
-fi
+# Coordination uses the CLI watch loop, not MCP. `relay mcp` stays in the binary
+# for MCP-only contexts but is not auto-registered (an MCP path has no blocking
+# watch, so agents drift off the loop).
 
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$BIN_DIR"; then
   echo ""

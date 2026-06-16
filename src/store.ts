@@ -150,15 +150,27 @@ function applyChanges(
     task.humanTested = next
   }
   if (changes.setGate) {
+    const { key, by } = changes.setGate
+    const evidence = changes.setGate.evidence?.trim()
+    if (!evidence) {
+      throw new Error(
+        `Gate "${key}" needs evidence: pass a link or path to the proof (no evidence == it didn't happen).`
+      )
+    }
+    // A code review and a manual test are different acts; one proof can't satisfy both.
+    if (
+      key === 'qa-manual-tested' &&
+      evidence === task.gates?.['qa-code-reviewed']?.evidence
+    ) {
+      throw new Error(
+        'qa-manual-tested needs its own evidence (a real test artifact), not the qa-code-reviewed proof reused.'
+      )
+    }
     task.gates = {
       ...(task.gates ?? {}),
-      [changes.setGate.key]: {
-        at: event.at,
-        by: changes.setGate.by ?? meta.actor,
-        evidence: changes.setGate.evidence,
-      },
+      [key]: { at: event.at, by: by ?? meta.actor, evidence },
     }
-    checks.push(`gate ${changes.setGate.key}`)
+    checks.push(`gate ${key}`)
   }
   if (changes.state && changes.state !== task.state) {
     const wasReviewed =

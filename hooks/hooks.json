@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/guard-coordinator-spawn.ts",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

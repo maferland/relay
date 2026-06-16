@@ -730,4 +730,41 @@ describe('project config, skills, and evidence gates', () => {
       store.update('task-bc', { state: 'ready' }, {})
     ).resolves.toMatchObject({ state: 'ready' })
   })
+
+  it('rejects a gate with no evidence', async () => {
+    await store.add(makeTask('task-noev', { state: 'review' }))
+    await expect(
+      store.update('task-noev', { setGate: { key: 'qa-code-reviewed' } }, {})
+    ).rejects.toThrow('needs evidence')
+    await expect(
+      store.update(
+        'task-noev',
+        { setGate: { key: 'qa-code-reviewed', evidence: '   ' } },
+        {}
+      )
+    ).rejects.toThrow('needs evidence')
+  })
+
+  it('rejects qa-manual-tested reusing the qa-code-reviewed proof', async () => {
+    await store.add(makeTask('task-reuse', { state: 'review' }))
+    await store.update(
+      'task-reuse',
+      { setGate: { key: 'qa-code-reviewed', evidence: 'pr#9 review' } },
+      {}
+    )
+    await expect(
+      store.update(
+        'task-reuse',
+        { setGate: { key: 'qa-manual-tested', evidence: 'pr#9 review' } },
+        {}
+      )
+    ).rejects.toThrow('its own evidence')
+    await expect(
+      store.update(
+        'task-reuse',
+        { setGate: { key: 'qa-manual-tested', evidence: 'e2e-output.txt' } },
+        {}
+      )
+    ).resolves.toMatchObject({ state: 'review' })
+  })
 })
