@@ -4,6 +4,8 @@ import { buildTask, SqliteTaskStore } from './store.js'
 import {
   isState,
   STATES,
+  type GateKey,
+  type ProjectConfig,
   type State,
   type Task,
   type TaskChanges,
@@ -48,6 +50,7 @@ const BOOL_FLAGS = new Set([
   'watch',
   'set',
   'continuous',
+  'require-playbook',
 ])
 const VALUE_FLAGS = new Set([
   'desc',
@@ -72,6 +75,12 @@ const VALUE_FLAGS = new Set([
   'expect-state',
   'watcher',
   'ttl',
+  'skill',
+  'gate',
+  'evidence',
+  'default-skill',
+  'ready-gate',
+  'retry-cap',
 ])
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -176,9 +185,14 @@ function printTask(task: Task, json: boolean): void {
   ].filter(Boolean)
   const checks = checked.length ? `\n  human: ${checked.join(', ')}` : ''
   const watcherLine = task.watcher ? `   watcher: ${task.watcher}` : ''
+  const skillsLine = task.skills?.length
+    ? `\n  skills: ${task.skills.join(', ')}`
+    : ''
+  const gateNames = task.gates ? Object.keys(task.gates) : []
+  const gatesLine = gateNames.length ? `\n  gates: ${gateNames.join(', ')}` : ''
   process.stdout.write(
     `${task.id}  [${task.state}]${flag}  ${task.title}\n` +
-      `  project: ${task.project}   assignee: ${task.assignee ?? '—'}${watcherLine}   updated: ${short(task.updatedAt)}${where}${labels}${checks}\n`
+      `  project: ${task.project}   assignee: ${task.assignee ?? '—'}${watcherLine}   updated: ${short(task.updatedAt)}${where}${labels}${checks}${skillsLine}${gatesLine}\n`
   )
 }
 
@@ -239,6 +253,8 @@ async function addCommand(args: ParsedArgs): Promise<void> {
       assignee: val(args.flags.assignee),
       labels:
         args.flags.label !== undefined ? csv(val(args.flags.label)) : undefined,
+      skills:
+        args.flags.skill !== undefined ? csv(val(args.flags.skill)) : undefined,
       actor,
       actorKind: resolveActorKind(actorFlag),
       sessionId: SESSION_ID,
@@ -322,6 +338,13 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
     changes.expectedState = requireState(val(args.flags['expect-state']))
   if (args.flags.watcher !== undefined)
     changes.watcher = val(args.flags.watcher) ?? null
+  if (args.flags.skill !== undefined)
+    changes.skills = csv(val(args.flags.skill))
+  if (args.flags.gate !== undefined)
+    changes.setGate = {
+      key: val(args.flags.gate)!,
+      evidence: val(args.flags.evidence),
+    }
 
   const updateActorFlag = val(args.flags.actor)
   const task = await new SqliteTaskStore()
@@ -611,6 +634,36 @@ function configCommand(args: ParsedArgs): void {
   process.stderr.write(`Saved name = ${name}\n`)
 }
 
+// `relay project [<name>]` shows a project's policy; with flags, sets it.
+async function projectCommand(args: ParsedArgs): Promise<void> {
+  const [name] = args.positional
+  const project = name ?? detectProject()
+  const store = new SqliteTaskStore()
+  const setFlags = [
+    'require-playbook',
+    'default-skill',
+    'ready-gate',
+    'retry-cap',
+  ]
+  const setting = setFlags.some((f) => args.flags[f] !== undefined)
+  if (!setting) {
+    const config = await store.getConfig(project)
+    process.stdout.write(JSON.stringify(config ?? { project }, null, 2) + '\n')
+    return
+  }
+  const existing = (await store.getConfig(project)) ?? { project }
+  const next: ProjectConfig = { ...existing, project }
+  if (args.flags['require-playbook']) next.requirePlaybook = true
+  if (args.flags['default-skill'] !== undefined)
+    next.defaultSkills = csv(val(args.flags['default-skill']))
+  if (args.flags['ready-gate'] !== undefined)
+    next.readyGates = csv(val(args.flags['ready-gate'])) as GateKey[]
+  if (args.flags['retry-cap'] !== undefined)
+    next.retryCap = parseInt(val(args.flags['retry-cap'])!, 10)
+  const saved = await store.setConfig(next)
+  process.stdout.write(JSON.stringify(saved, null, 2) + '\n')
+}
+
 async function mcpCommand(): Promise<void> {
   const { StdioServerTransport } =
     await import('@modelcontextprotocol/sdk/server/stdio.js')
@@ -722,6 +775,8 @@ const HELP =
   '  relay resolve <id> [--note ..]                 (clear the needs-human flag)\n' +
   '  relay ui [<id>] [--me <name>] [--port N]   (local web UI; <id> opens straight to that task)\n' +
   '  relay config set name "<you>"   (your operator identity; fixes "unknown")\n' +
+  '  relay project [<name>] [--require-playbook] [--default-skill a,b] [--ready-gate qa-code-reviewed,qa-manual-tested] [--retry-cap N]\n' +
+  '  relay update <id> [--skill a,b] [--gate qa-manual-tested --evidence <url>]   (playbook + QA evidence gates)\n' +
   '  relay register [--project P] [--json]   (generate a unique session name; prints export RELAY_ACTOR=...)\n' +
   '  relay agents [--project P|--all] [--json]   (list registered agents + status)\n' +
   '  relay mcp   (stdio MCP server over the same store)\n' +
@@ -787,6 +842,8 @@ async function main(): Promise<void> {
       return completionCommand(args)
     case 'config':
       return configCommand(args)
+    case 'project':
+      return projectCommand(args)
     case 'mcp':
       return mcpCommand()
     case 'ui':

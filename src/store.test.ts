@@ -636,3 +636,98 @@ describe('expectedState guard', () => {
     expect(after!.history).toHaveLength(1)
   })
 })
+
+describe('project config, skills, and evidence gates', () => {
+  let dir: string
+  let store: SqliteTaskStore
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'relay-test-'))
+    store = new SqliteTaskStore(dir)
+  })
+
+  afterEach(() => {
+    store.close()
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('returns null for an unconfigured project and round-trips a set config', async () => {
+    expect(await store.getConfig('demo')).toBeNull()
+    await store.setConfig({
+      project: 'demo',
+      requirePlaybook: true,
+      readyGates: ['qa-manual-tested'],
+    })
+    expect(await store.getConfig('demo')).toMatchObject({
+      project: 'demo',
+      requirePlaybook: true,
+      readyGates: ['qa-manual-tested'],
+    })
+  })
+
+  it('applies project defaultSkills to a new task that has none', async () => {
+    await store.setConfig({ project: 'demo', defaultSkills: ['migrate'] })
+    await store.add(makeTask('task-def'))
+    expect((await store.get('task-def'))!.skills).toEqual(['migrate'])
+  })
+
+  it('does not override a task that brings its own skills', async () => {
+    await store.setConfig({ project: 'demo', defaultSkills: ['migrate'] })
+    await store.add(makeTask('task-own', { skills: ['custom'] }))
+    expect((await store.get('task-own'))!.skills).toEqual(['custom'])
+  })
+
+  it('rejects claiming a playbook-required task with no skill', async () => {
+    await store.setConfig({ project: 'demo', requirePlaybook: true })
+    await store.add(makeTask('task-np'))
+    await expect(
+      store.claim('task-np', { assignee: 'drainer' })
+    ).rejects.toThrow('needs a playbook')
+  })
+
+  it('allows claiming when project defaults supply the playbook', async () => {
+    await store.setConfig({
+      project: 'demo',
+      requirePlaybook: true,
+      defaultSkills: ['migrate'],
+    })
+    await store.add(makeTask('task-dflt'))
+    await expect(
+      store.claim('task-dflt', { assignee: 'drainer' })
+    ).resolves.toMatchObject({ state: 'doing' })
+  })
+
+  it('blocks review → ready until required gates carry evidence', async () => {
+    await store.setConfig({
+      project: 'demo',
+      readyGates: ['qa-code-reviewed', 'qa-manual-tested'],
+    })
+    await store.add(makeTask('task-g', { state: 'review' }))
+    await expect(
+      store.update('task-g', { state: 'ready' }, {})
+    ).rejects.toThrow('missing evidence gate')
+    await store.update(
+      'task-g',
+      { setGate: { key: 'qa-code-reviewed', evidence: 'pr#1' } },
+      { actor: 'qa' }
+    )
+    await expect(
+      store.update('task-g', { state: 'ready' }, {})
+    ).rejects.toThrow('qa-manual-tested')
+    await store.update(
+      'task-g',
+      { setGate: { key: 'qa-manual-tested', evidence: 'shot.png' } },
+      { actor: 'qa' }
+    )
+    const ready = await store.update('task-g', { state: 'ready' }, {})
+    expect(ready.state).toBe('ready')
+    expect(ready.gates!['qa-manual-tested'].evidence).toBe('shot.png')
+  })
+
+  it('leaves review → ready unchanged when no config is set (back-compat)', async () => {
+    await store.add(makeTask('task-bc', { state: 'review' }))
+    await expect(
+      store.update('task-bc', { state: 'ready' }, {})
+    ).resolves.toMatchObject({ state: 'ready' })
+  })
+})
