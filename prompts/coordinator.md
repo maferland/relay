@@ -60,9 +60,11 @@ do not create a new one — the drainer is watching this id and will
 pick it back up automatically):
   relay update <id> --state todo --note "<exact failure and what to fix>"
 
-### 4. Real-world testing
+### 4. Real-world testing (MANDATORY — no exceptions)
 
-Don't stop at "tests pass." Exercise the actual behavior:
+**Automated tests passing is not enough. You must use the feature as a human operator would.**
+
+Ask yourself: "If I handed this to a user right now, would it work?" Then go find out. Boot the actual binary or running UI. Walk through the feature. Try the edge cases.
 
 - CLI changes: run the binary against a temp store. Seed realistic
   data, run the changed commands, verify the output is correct — not
