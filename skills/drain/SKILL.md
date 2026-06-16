@@ -57,10 +57,12 @@ If project is wrong or assignee isn't you:
 relay update <id> --state todo --assignee ""
 ```
 
-### 3. Worktree off latest main
+### 3. Worktree off the repo's default branch
+
+Use the repo and base branch the task plan names (e.g. carta-web branches off `master`, not `main`). Do not assume `main` — confirm with `git -C <repo> symbolic-ref --short refs/remotes/origin/HEAD`.
 
 ```bash
-git -C <repo> worktree add .worktrees/<slug> -b <branch> origin/main
+git -C <repo> worktree add .worktrees/<slug> -b <branch> origin/<default-branch>
 ```
 
 Work ONLY in that worktree. Keep it alive until the task reaches `merged`.
