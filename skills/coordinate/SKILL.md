@@ -27,10 +27,16 @@ relay register --project <project>
 Your turn-by-turn loop IS the watch loop. At the top of every turn:
 
 ```bash
-relay watch --state review --project <project> --json --timeout 60
+relay watch --project <project> --json --timeout 60
 ```
 
-- Task arrives → QA it (steps 1–6), then start next turn the same way.
+Watch the whole project, not just one state. Route on what arrives:
+
+- `state: review` → QA it (steps 1–6 below)
+- `state: ready` → a task you already passed is waiting for human sign-off; remind the human if they haven't acted
+- `state: merged` → confirm the task is marked correctly; if a PR was merged externally without going through you, update the task
+- `state: todo` with a note → a send-back you triggered; no action needed, the drainer will pick it up
+- `state: blocked` → escalate to the human
 - Timeout → start next turn immediately. Do not wait to be prompted.
 
 ### 1. Read the handoff
