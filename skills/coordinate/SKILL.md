@@ -22,6 +22,11 @@ relay register --project <project>
 /rename coordinator [<project>]
 ```
 
+## Important: relay is a CLI tool, not an MCP server
+
+All `relay` commands are run via **Bash**. There is no MCP tool named `watch_task`,
+`list_tasks`, etc. Never substitute a `sleep` loop for `relay watch`.
+
 ## Core loop
 
 Your turn-by-turn loop IS the watch loop. At the top of every turn:

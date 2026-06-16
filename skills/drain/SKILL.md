@@ -24,6 +24,12 @@ relay register --project <project>
 /rename drainer [<project>]
 ```
 
+## Important: relay is a CLI tool, not an MCP server
+
+All `relay` commands are run via **Bash**. There is no MCP tool named `watch_task`,
+`list_tasks`, etc. If you're looking for an MCP tool and can't find it, stop — use
+the `relay` CLI instead. Never substitute a `sleep` loop for `relay watch`.
+
 ## Loop
 
 Repeat until the queue is empty or you hit an unresolvable error.
