@@ -61,6 +61,7 @@ bun run typecheck && bun test && bun run lint && bun run format:check
 ```
 
 Any failure → send back (update the existing task, never create a new one):
+
 ```bash
 relay update <id> --state todo --note "<exact failure and what to fix>"
 ```

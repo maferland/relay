@@ -12,19 +12,20 @@ review, judge, and steer drainer agents through relay.
 ## Identity
 
 Set your actor for the session:
-  export RELAY_ACTOR=coordinator-<something-unique>
+export RELAY_ACTOR=coordinator-<something-unique>
 
 Register so the team can see you're alive:
-  relay register --project <project>
-  /rename coordinator [<project>]
+relay register --project <project>
+/rename coordinator [<project>]
 
 ## Core loop
 
 Your turn-by-turn loop IS the watch loop. At the top of every turn:
 
-  relay watch --project <project> --json --timeout 60
+relay watch --project <project> --json --timeout 60
 
 Watch the whole project, not just one state. Route on what arrives:
+
 - `state: review` → QA it (steps 1-6 below)
 - `state: ready` → remind the human if they haven't acted on the sign-off
 - `state: merged` → confirm task is marked correctly; if a PR merged externally, update the task
@@ -39,7 +40,7 @@ On each event, work through the following:
 
 ### 1. Read the handoff
 
-  relay show <id>
+relay show <id>
 
 Understand what changed and what the drainer says to verify.
 
@@ -48,21 +49,21 @@ Understand what changed and what the drainer says to verify.
 The drainer already cleaned up its worktree. Create your own from the
 PR branch so you can run checks locally:
 
-  git fetch origin
-  git worktree add .worktrees/verify-<id> origin/<branch>
+git fetch origin
+git worktree add .worktrees/verify-<id> origin/<branch>
 
 Work in this worktree for all automated and real-world checks.
 
 ### 3. Automated checks
 
 From inside the verify worktree:
-  bun install
-  bun run typecheck && bun test && bun run lint && bun run format:check
+bun install
+bun run typecheck && bun test && bun run lint && bun run format:check
 
 Any failure → send back to the SAME drainer (update the existing task,
 do not create a new one — the drainer is watching this id and will
 pick it back up automatically):
-  relay update <id> --state todo --note "<exact failure and what to fix>"
+relay update <id> --state todo --note "<exact failure and what to fix>"
 
 ### 4. Real-world testing (MANDATORY — no exceptions)
 
@@ -89,6 +90,7 @@ Ask yourself: "If I handed this to a user right now, would it work?" Then go fin
 ### 5. Code review
 
 Read the diff critically:
+
 - Does it do exactly what the task asked? No more, no less.
 - Any bugs, edge cases, or regressions?
 - Style consistent with the surrounding code?
@@ -97,14 +99,14 @@ Read the diff critically:
 ### 6. Merge
 
 The drainer already pushed and opened the PR. Once you're satisfied:
-  gh pr merge <n> --squash
-  relay update <id> --state merged --tested --note "Merged PR #N"
-  git worktree remove .worktrees/verify-<id> --force
+gh pr merge <n> --squash
+relay update <id> --state merged --tested --note "Merged PR #N"
+git worktree remove .worktrees/verify-<id> --force
 
 ### 7. Steer
 
 After each merge, check the queue:
-  relay list --project <project> --state todo
+relay list --project <project> --state todo
 
 - If the queue has unambiguous next tasks: comment on the best one so
   a drainer knows what to pick up.
@@ -113,9 +115,9 @@ After each merge, check the queue:
   one for the same work. The drainer watches its task id and reacts
   to state changes automatically.
 - If something requires a design decision or human judgment:
-    relay escalate <id> --note "<the question>"
+  relay escalate <id> --note "<the question>"
 - If a drainer goes quiet (nothing in doing for >10 min):
-    relay agents     (check who's registered and last seen)
+  relay agents (check who's registered and last seen)
 
 When in doubt about anything — merge/send-back, design, scope — stop
 and ask the user before acting. A wrong merge is harder to undo than
