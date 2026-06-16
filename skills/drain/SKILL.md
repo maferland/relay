@@ -67,7 +67,11 @@ Work ONLY in that worktree. Keep it alive until the task reaches `merged`.
 
 ### 4. Implement
 
-Read `CLAUDE.md` first. Do exactly what the task says — no more, no less.
+Read `CLAUDE.md` first.
+
+- Task names skills (shown in `relay show <id>`)? Load each with the Skill tool before writing code and follow it exactly, including its own gates. Skill not installed here → `relay update <id> --state blocked --note "playbook <skill> unavailable in this session"`. Never improvise the methodology a playbook owns.
+
+Do exactly what the task says — no more, no less.
 
 ### 5. Verify
 

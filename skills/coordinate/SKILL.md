@@ -101,12 +101,16 @@ If you cannot complete live testing for any reason, send the task back with a cl
 
 ### 6. Hand off to human (you are now blocked)
 
-Once automated checks, live testing, and code review all pass, mark the task ready and stop. You cannot merge without human sign-off.
+Once automated checks, live testing, and code review all pass, record the evidence gates, then mark the task ready and stop. You cannot merge without human sign-off.
 
 ```bash
+relay update <id> --gate qa-code-reviewed --evidence "<PR link or your review notes>"
+relay update <id> --gate qa-manual-tested --evidence "<screenshot or captured output of the live test>"
 relay update <id> --state ready --reviewed \
   --note "QA passed. Verified: <what you tested and how>. PR #N ready to merge."
 ```
+
+If the project requires gates, `--state ready` is rejected until both are recorded. That is intended: no handoff to the human without proof.
 
 Then tell your human **loudly and clearly**:
 
