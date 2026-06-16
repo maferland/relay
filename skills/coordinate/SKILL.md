@@ -22,6 +22,12 @@ relay register --project <project>
 /rename coordinator [<project>]
 ```
 
+## You do not spawn drainers
+
+Do NOT call the `Agent` tool to start a drainer. The human starts drainers manually.
+Your job is to QA, steer, and log — not to implement. If the queue has todo tasks,
+comment on the best one and wait for a human-started drainer to pick it up.
+
 ## Important: relay is a CLI tool, not an MCP server
 
 All `relay` commands are run via **Bash**. There is no MCP tool named `watch_task`,
