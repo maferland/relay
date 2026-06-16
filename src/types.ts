@@ -50,6 +50,16 @@ export interface TaskLink {
   lastStatus?: string // last summary seen by `relay sync`, to detect changes
 }
 
+// Evidence that a gate was cleared. "No evidence == the QA did not happen."
+export interface GateEvidence {
+  at: string
+  by?: string
+  evidence?: string // link/path to the proof (screenshot, captured output, log)
+}
+
+// Agent-level QA gates, distinct from the human checkpoints (humanReviewed/humanTested).
+export type GateKey = 'qa-code-reviewed' | 'qa-manual-tested'
+
 export interface Task {
   id: string
   title: string
@@ -66,6 +76,8 @@ export interface Task {
   humanTested?: boolean
   labels?: string[] // free-form tags, orthogonal to state (e.g. awaiting-code-review)
   links?: TaskLink[] // remote counterparts (PRs, tickets) a connector can poll
+  skills?: string[] // playbook skills the drainer loads before implementing (cf. OMO load_skills)
+  gates?: Record<string, GateEvidence> // evidence gates cleared on this task (key → proof)
   assignee?: string
   watcher?: string // orchestrator agent for the task's lifecycle; persists across send-backs
   createdBy?: string
@@ -92,4 +104,15 @@ export interface TaskChanges {
   humanReviewed?: boolean // true to set, false to clear
   humanTested?: boolean // true to set, false to clear
   watcher?: string | null // set to a name to register; null to clear
+  skills?: string[] // replace the playbook set
+  setGate?: { key: string; evidence?: string; by?: string } // record an evidence gate with proof
+}
+
+// Per-project policy. Absent fields = today's behavior, so existing projects are unchanged.
+export interface ProjectConfig {
+  project: string
+  requirePlaybook?: boolean // reject claim if the task carries no skill (own or default)
+  defaultSkills?: string[] // tasks in this project inherit these when none are set
+  readyGates?: GateKey[] // evidence required to move review → ready
+  retryCap?: number // auto-bounces on the same cause before escalating to a human
 }

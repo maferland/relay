@@ -1,7 +1,13 @@
 import { Database } from 'bun:sqlite'
 import fs from 'fs'
 import path from 'path'
-import type { State, Task, TaskChanges, TaskEvent } from './types.js'
+import type {
+  ProjectConfig,
+  State,
+  Task,
+  TaskChanges,
+  TaskEvent,
+} from './types.js'
 import { requiresNote } from './types.js'
 import { dataDir, generateId } from './util.js'
 
@@ -59,6 +65,7 @@ export interface NewTaskInput {
   sessionId?: string
   note?: string
   labels?: string[]
+  skills?: string[]
 }
 
 // One place both CLI and MCP build a task, so creation can't drift between surfaces.
@@ -83,6 +90,7 @@ export function buildTask(input: NewTaskInput): Task {
     worktree: input.worktree || undefined,
     assignee: input.assignee || undefined,
     labels: input.labels?.length ? [...new Set(input.labels)] : undefined,
+    skills: input.skills?.length ? [...new Set(input.skills)] : undefined,
     createdBy: input.actor,
     createdAt: now,
     updatedAt: now,
@@ -108,7 +116,8 @@ function applyChanges(
     actorKind?: 'human' | 'agent'
     sessionId?: string
     note?: string
-  }
+  },
+  config?: ProjectConfig | null
 ): void {
   const note = meta.note?.trim()
   const event: TaskEvent = { at: new Date().toISOString() }
@@ -140,6 +149,17 @@ function applyChanges(
       checks.push(next ? 'marked human-tested' : 'cleared human-tested')
     task.humanTested = next
   }
+  if (changes.setGate) {
+    task.gates = {
+      ...(task.gates ?? {}),
+      [changes.setGate.key]: {
+        at: event.at,
+        by: changes.setGate.by ?? meta.actor,
+        evidence: changes.setGate.evidence,
+      },
+    }
+    checks.push(`gate ${changes.setGate.key}`)
+  }
   if (changes.state && changes.state !== task.state) {
     const wasReviewed =
       task.state === 'review' || task.history.some((e) => e.to === 'review')
@@ -147,6 +167,15 @@ function applyChanges(
       throw new Error(
         'Cannot mark merged: this task was reviewed but never human-tested. Pass --tested (or `relay update <id> --tested`) first.'
       )
+    }
+    if (changes.state === 'ready' && config?.readyGates?.length) {
+      const missing = config.readyGates.filter((g) => !task.gates?.[g])
+      if (missing.length) {
+        throw new Error(
+          `Cannot mark ready: missing evidence gate(s): ${missing.join(', ')}. ` +
+            `Record each with: relay update ${task.id} --gate <key> --evidence <url>.`
+        )
+      }
     }
     if (requiresNote(task.state, changes.state) && !note) {
       throw new Error(
@@ -163,6 +192,10 @@ function applyChanges(
   if (changes.description !== undefined)
     task.description = changes.description || undefined
   if (changes.plan !== undefined) task.plan = changes.plan || undefined
+  if (changes.skills !== undefined)
+    task.skills = changes.skills.length
+      ? [...new Set(changes.skills)]
+      : undefined
   if (changes.branch !== undefined) task.branch = changes.branch || undefined
   if (changes.worktree !== undefined)
     task.worktree = changes.worktree || undefined
@@ -253,6 +286,8 @@ export interface TaskStore {
       note?: string
     }
   ): Promise<Task>
+  getConfig(project: string): Promise<ProjectConfig | null>
+  setConfig(config: ProjectConfig): Promise<ProjectConfig>
 }
 
 interface Row {
@@ -282,6 +317,12 @@ export class SqliteTaskStore implements TaskStore {
         data TEXT NOT NULL
       )`
     )
+    this.db.exec(
+      `CREATE TABLE IF NOT EXISTS project_config (
+        project TEXT PRIMARY KEY,
+        data TEXT NOT NULL
+      )`
+    )
   }
 
   close(): void {
@@ -290,6 +331,10 @@ export class SqliteTaskStore implements TaskStore {
 
   async add(task: Task): Promise<void> {
     validateId(task.id)
+    if (!task.skills?.length) {
+      const config = this.readConfigRow(task.project)
+      if (config?.defaultSkills?.length) task.skills = [...config.defaultSkills]
+    }
     try {
       await withBusyRetry(() => this.insertRow(task))
     } catch (err) {
@@ -357,7 +402,7 @@ export class SqliteTaskStore implements TaskStore {
         .transaction(() => {
           const task = this.readRow(id)
           if (!task) throw new Error(`Task "${id}" not found`)
-          applyChanges(task, changes, meta)
+          applyChanges(task, changes, meta, this.readConfigRow(task.project))
           this.writeRow(task)
           return task
         })
@@ -386,6 +431,18 @@ export class SqliteTaskStore implements TaskStore {
               `Task is already claimed by "${task.assignee}". Pass --force to override.`
             )
           }
+          const config = this.readConfigRow(task.project)
+          if (config?.requirePlaybook) {
+            const effective = task.skills?.length
+              ? task.skills
+              : config.defaultSkills
+            if (!effective?.length) {
+              throw new Error(
+                `Task "${id}" needs a playbook before it can be claimed ` +
+                  `(project "${task.project}" requires one). Set it: relay update ${id} --skill <skill>.`
+              )
+            }
+          }
           applyChanges(
             task,
             {
@@ -400,7 +457,8 @@ export class SqliteTaskStore implements TaskStore {
               actorKind: input.actorKind,
               sessionId: input.sessionId,
               note: input.note ?? 'claimed',
-            }
+            },
+            config
           )
           this.writeRow(task)
           return task
@@ -514,6 +572,28 @@ export class SqliteTaskStore implements TaskStore {
         })
         .immediate()
     )
+  }
+
+  async getConfig(project: string): Promise<ProjectConfig | null> {
+    return this.readConfigRow(project)
+  }
+
+  async setConfig(config: ProjectConfig): Promise<ProjectConfig> {
+    return withBusyRetry(() => {
+      this.db
+        .query(
+          'INSERT OR REPLACE INTO project_config (project, data) VALUES (?, ?)'
+        )
+        .run(config.project, JSON.stringify(config))
+      return config
+    })
+  }
+
+  private readConfigRow(project: string): ProjectConfig | null {
+    const row = this.db
+      .query('SELECT data FROM project_config WHERE project = ?')
+      .get(project) as Row | null
+    return row ? (JSON.parse(row.data) as ProjectConfig) : null
   }
 
   private readRow(id: string): Task | null {
