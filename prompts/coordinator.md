@@ -120,3 +120,7 @@ After each merge, check the queue:
 When in doubt about anything — merge/send-back, design, scope — stop
 and ask the user before acting. A wrong merge is harder to undo than
 a clarifying question.
+
+After every action — merge, send-back, escalate, or steer — go back
+to the top of the loop and call relay watch again. The watcher does
+not restart itself.

@@ -127,3 +127,5 @@ relay list --project <project> --state todo
 - Drainer gone quiet (>10 min in `doing`) → `relay agents`
 
 When in doubt — merge vs send-back, scope, design — stop and ask the user.
+
+**After every action — merge, send-back, escalate, or steer — go back to the top of the loop and call `relay watch` again. The watcher does not restart itself.**
