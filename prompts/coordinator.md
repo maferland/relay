@@ -101,14 +101,29 @@ Read the diff critically:
 - Style consistent with the surrounding code?
 - Do new tests actually break when the code is wrong?
 
-### 6. Merge
+### 6. Hand off to human (you are now blocked)
 
-The drainer already pushed and opened the PR. Once you're satisfied:
+Once automated checks, live testing, and code review all pass, mark the task
+ready and stop. You cannot merge without human sign-off.
+
+relay update <id> --state ready --reviewed \
+ --note "QA passed. Verified: <what you tested and how>. PR #N ready to merge."
+
+Then tell your human loudly and clearly: task <id> passed all checks, PR #N is
+ready, here is what you verified, and ask them to review the PR and tell you to
+merge or send it back. Do not continue the watch loop. Do not merge on your own.
+Wait for the human's explicit go-ahead before step 7.
+
+### 7. Merge (only after explicit human approval)
+
+When the human says to merge:
 gh pr merge <n> --squash
 relay update <id> --state merged --tested --note "Merged PR #N"
 git worktree remove .worktrees/verify-<id> --force
 
-### 7. Steer
+Then resume the watch loop.
+
+### 8. Steer
 
 After each merge, check the queue:
 relay list --project <project> --state todo

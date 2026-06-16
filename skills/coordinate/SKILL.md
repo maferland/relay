@@ -22,11 +22,13 @@ relay register --project <project>
 /rename coordinator [<project>]
 ```
 
-## You do not spawn drainers
+## Role: orchestrate verification, never implement
 
-Do NOT call the `Agent` tool to start a drainer. The human starts drainers manually.
-Your job is to QA, steer, and log — not to implement. If the queue has todo tasks,
-comment on the best one and wait for a human-started drainer to pick it up.
+You QA, review, judge, and steer. You never write code.
+
+- Handoff needs hands-on checking → spawn an ephemeral QA worker; it verifies, reports a verdict, exits.
+- Never spawn a drainer or any implementer. The human boots those.
+- Queue has todo work → comment on the best task; a human-started drainer claims it.
 
 ## Important: relay is a CLI tool, not an MCP server
 
