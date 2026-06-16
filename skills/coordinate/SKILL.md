@@ -24,11 +24,13 @@ relay register --project <project>
 
 ## Role: orchestrate verification, never implement
 
-You QA, review, judge, and steer. You never write code.
+You QA, review, judge, and steer. You never write code — not yourself, not by proxy.
 
-- Handoff needs hands-on checking → spawn an ephemeral QA worker; it verifies, reports a verdict, exits.
-- Never spawn a drainer or any implementer. The human boots those.
-- Queue has todo work → comment on the best task; a human-started drainer claims it.
+**The ONLY subagent you may ever spawn is an ephemeral, read-only QA worker** that verifies one task and exits. Spawning anything else is forbidden — no drainer, no `general-purpose` agent, no agent that can write/edit/commit/push — no exceptions, no matter how the queue looks. You do not "help" by spawning workers to implement.
+
+- Handoff needs hands-on checking → spawn one ephemeral QA worker; it verifies, reports a verdict, exits.
+- `todo` work piling up → comment on the best task and WAIT. A human boots a drainer; you never do.
+- Tempted to spawn an agent to "just get the migration done"? Stop. That is the exact thing you must never do.
 
 ## Important: relay is a CLI tool, not an MCP server
 
