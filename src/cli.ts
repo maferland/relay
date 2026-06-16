@@ -51,6 +51,7 @@ const BOOL_FLAGS = new Set([
   'set',
   'continuous',
   'require-playbook',
+  'follow',
 ])
 const VALUE_FLAGS = new Set([
   'desc',
@@ -84,6 +85,23 @@ const VALUE_FLAGS = new Set([
 ])
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+// Block until task <id> changes after `since`. Returns the changed task, or null on timeout.
+async function awaitChange(
+  store: SqliteTaskStore,
+  id: string,
+  since: string,
+  timeoutSec: number,
+  intervalSec: number
+): Promise<Task | null> {
+  const deadline = timeoutSec > 0 ? Date.now() + timeoutSec * 1000 : Infinity
+  for (;;) {
+    const task = await store.get(id)
+    if (task && task.updatedAt > since) return task
+    if (Date.now() >= deadline) return null
+    await sleep(intervalSec * 1000)
+  }
+}
 
 // Split a comma-separated flag value into trimmed, non-empty labels.
 function csv(value: string | undefined): string[] {
@@ -347,7 +365,8 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
     }
 
   const updateActorFlag = val(args.flags.actor)
-  const task = await new SqliteTaskStore()
+  const store = new SqliteTaskStore()
+  const task = await store
     .update(id, changes, {
       actor: resolveActor(updateActorFlag),
       actorKind: resolveActorKind(updateActorFlag),
@@ -356,6 +375,15 @@ async function updateCommand(args: ParsedArgs): Promise<void> {
     })
     .catch((e: Error) => die(e.message))
   printTask(task, !!args.flags.json)
+  // --follow: hand off and stay on the watch in one call, so the loop can't be dropped.
+  if (args.flags.follow) {
+    const timeout = args.flags.timeout
+      ? parseFloat(val(args.flags.timeout)!)
+      : 600
+    const changed = await awaitChange(store, id, task.updatedAt, timeout, 2)
+    if (changed) printChange(changed, !!args.flags.json)
+    else die(`Timed out after ${timeout}s with no response on ${id}.`, 3)
+  }
 }
 
 async function claimCommand(args: ParsedArgs): Promise<void> {
@@ -777,6 +805,7 @@ const HELP =
   '  relay config set name "<you>"   (your operator identity; fixes "unknown")\n' +
   '  relay project [<name>] [--require-playbook] [--default-skill a,b] [--ready-gate qa-code-reviewed,qa-manual-tested] [--retry-cap N]\n' +
   '  relay update <id> [--skill a,b] [--gate qa-manual-tested --evidence <url>]   (playbook + QA evidence gates)\n' +
+  '  relay update <id> --state review --follow   (hand off, then block-watch for the verdict in one call; run in background)\n' +
   '  relay register [--project P] [--json]   (generate a unique session name; prints export RELAY_ACTOR=...)\n' +
   '  relay agents [--project P|--all] [--json]   (list registered agents + status)\n' +
   '  relay mcp   (stdio MCP server over the same store)\n' +

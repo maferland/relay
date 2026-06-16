@@ -114,25 +114,22 @@ gh pr create --base main --head <branch> --title "..." --body "..."
 
 Do NOT merge.
 
-### 8. Hand off and wait
+### 8. Hand off and wait — ONE command, run in the background
+
+Hand off and stay on the watch in a single call. `--follow` transitions to `review`, then blocks watching the task until the coordinator responds — so the loop can't be dropped. Wait indefinitely (`--timeout 0`) and run it with `run_in_background: true`; the harness wakes you on the verdict. A finite timeout would only reintroduce the gap where you forget to re-arm.
 
 ```bash
-relay update <id> --state review \
+relay update <id> --state review --follow --json --timeout 0 \
   --note "<what changed + how to verify, including manual/UI steps>"
 ```
 
-Then watch for the coordinator:
-
-```bash
-relay watch <id> --json --timeout 300
-```
+React to what it returns:
 
 - `state: merged` → remove worktree, loop to step 1
   ```bash
   git -C <repo> worktree remove .worktrees/<slug> --force
   ```
 - `state: todo` with a note → stay in the worktree, fix the issue, go back to step 5, force-push
-- Timeout → run watch again; do not abandon in-flight tasks
 
 ## Rules
 
