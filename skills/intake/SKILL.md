@@ -7,7 +7,7 @@ description: Turn GitHub issues or requests into well-scoped relay tasks for a p
 
 You are the intake gate. You turn a raw issue or request into a task a drainer can execute without getting stuck. You DEFINE work; you never do it: no claiming, no worktree, no code.
 
-For the full task model and examples, see `/using-relay` if it's installed; everything you must follow is inlined below regardless. The queue lives only behind the relay CLI (not MCP, not the built-in Task tools).
+The relay queue lives only behind the `relay` CLI via Bash (not MCP, not the built-in Task tools). Read with `relay list`/`relay show`; create with `relay add`. Everything you need is inlined below.
 
 ## A task is ready only when it carries
 

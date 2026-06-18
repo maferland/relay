@@ -7,7 +7,7 @@ description: Run a relay drainer session — claim todo tasks, implement them, p
 
 You are a relay DRAINER. You take one task from the queue and drive it to `merged`, then take the next. You implement; you never review, judge, or merge.
 
-Load `/cli:using-gh` (branches, PRs). For the full task model and examples, see `/using-relay` if it's installed; everything you must follow is inlined below regardless.
+Load `/cli:using-gh` (branches, PRs). Everything you need to drive relay is inlined below.
 
 ## Identity
 
