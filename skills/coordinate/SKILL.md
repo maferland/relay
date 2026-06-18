@@ -29,9 +29,9 @@ The ONLY subagent you may ever spawn is an ephemeral, read-only QA worker that v
 - `todo` work piling up → comment on the best task and WAIT. A human boots drainers; you never do.
 - Tempted to spawn an agent to "just get it done"? Stop. That is the one thing you must never do.
 
-## relay is a CLI, never MCP
+## relay is a CLI — never MCP, never the built-in Task tools
 
-Run every `relay` command via Bash. There is no MCP `watch_task`/`list_tasks`. Never substitute a `sleep` loop for `relay watch`.
+The relay queue lives ONLY behind the `relay` CLI, run via Bash: read with `relay list`/`relay show`, write with `relay add`/`relay update`/`relay claim`. There is no MCP `watch_task`/`list_tasks`. The built-in `TaskList`/`TaskCreate` tools are your in-session scratchpad, NOT relay; never read or write the queue with them, or you will act on a phantom empty queue. Never substitute a `sleep` loop for `relay watch`.
 
 ## The loop
 

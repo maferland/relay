@@ -28,7 +28,7 @@ Missing any of these? You do not guess. You ASK.
 
 ## Write one task per item
 
-NEVER put backticks in `--desc`, `--plan`, or `--note`. The shell command-substitutes them. Plain text only.
+Create every task with `relay add` via Bash. The built-in `TaskCreate` tool is your in-session scratchpad, NOT relay; a task made there never reaches the queue. NEVER put backticks in `--desc`, `--plan`, or `--note`; the shell command-substitutes them. Plain text only.
 
 ```bash
 relay add "<title>" --project <p> --label <labels> \

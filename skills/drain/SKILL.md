@@ -19,9 +19,9 @@ relay register --project <project>
 /rename drainer [<project>]
 ```
 
-## relay is a CLI, never MCP
+## relay is a CLI — never MCP, never the built-in Task tools
 
-Run every `relay` command via Bash. There is no MCP `watch_task`/`list_tasks`. Never substitute a `sleep` loop for `relay watch`.
+The relay queue lives ONLY behind the `relay` CLI, run via Bash: read with `relay list`/`relay show`, write with `relay add`/`relay update`/`relay claim`. There is no MCP `watch_task`/`list_tasks`. The built-in `TaskList`/`TaskCreate` tools are your in-session scratchpad, NOT relay; never read or write the queue with them. Never substitute a `sleep` loop for `relay watch`.
 
 ## The loop
 
