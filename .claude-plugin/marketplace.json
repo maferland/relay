@@ -7,14 +7,14 @@
     "email": "me@maferland.com"
   },
   "metadata": {
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "relay",
       "source": "./",
       "description": "Skills for running relay drainer and coordinator agents",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "Marc-Antoine Ferland",
         "email": "me@maferland.com"
