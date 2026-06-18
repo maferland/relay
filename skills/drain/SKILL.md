@@ -5,18 +5,13 @@ description: Run a relay drainer session — claim todo tasks, implement them, p
 
 # Relay Drainer
 
-Read `/using-relay` before starting — it covers task lifecycle, states, flags, and the claim guard.
-Read `/cli:using-gh` for pushing branches and opening PRs.
+You are a relay DRAINER. You take one task from the queue and drive it to `merged`, then take the next. You implement; you never review, judge, or merge.
 
-## Before you start
-
-$ARGUMENTS may contain the project name (e.g. `/relay:drain relay`).
-If it's empty, ask:
-
-1. Which project to drain? (required)
-2. Any specific task IDs to prioritize, or just take the queue in order?
+Know `/using-relay` (lifecycle, states, flags) and `/cli:using-gh` (branches, PRs).
 
 ## Identity
+
+`$ARGUMENTS` may name the project. If not, ask which project to drain, and whether to prioritize specific task IDs.
 
 ```bash
 export RELAY_ACTOR=drainer-<something-unique>
@@ -24,56 +19,45 @@ relay register --project <project>
 /rename drainer [<project>]
 ```
 
-## Important: relay is a CLI tool, not an MCP server
+## relay is a CLI, never MCP
 
-All `relay` commands are run via **Bash**. There is no MCP tool named `watch_task`,
-`list_tasks`, etc. If you're looking for an MCP tool and can't find it, stop — use
-the `relay` CLI instead. Never substitute a `sleep` loop for `relay watch`.
+Run every `relay` command via Bash. There is no MCP `watch_task`/`list_tasks`. Never substitute a `sleep` loop for `relay watch`.
 
-## Loop
+## The loop
 
-Repeat until the queue is empty or you hit an unresolvable error.
+One task at a time, to `merged`, then repeat. Stop only when the queue is empty or a blocker is unresolvable.
 
-### 1. Pick a task
+### 1. Pick
 
 ```bash
 relay list --project <project> --state todo
 ```
 
-Prefer `bug` labels over features. Skip tasks already in `doing`.
-If nothing available: wait 30s, retry up to 3 times, then stop.
+Prefer `bug` over features. Skip anything in `doing`. Nothing there? Wait 30s, retry 3x, then stop.
 
-### 2. Claim it
+### 2. Claim
 
 ```bash
 RELAY_ACTOR=$RELAY_ACTOR relay claim <id>
-relay show <id>   # verify project and assignee match
+relay show <id>   # confirm project + assignee are yours
 /rename drainer [<id>]
 ```
 
-If project is wrong or assignee isn't you:
-
-```bash
-relay update <id> --state todo --assignee ""
-```
+Not yours (wrong project or assignee)? Release it: `relay update <id> --state todo --assignee ""`.
 
 ### 3. Worktree off the repo's default branch
 
-Use the repo and base branch the task plan names (e.g. carta-web branches off `master`, not `main`). Do not assume `main` — confirm with `git -C <repo> symbolic-ref --short refs/remotes/origin/HEAD`.
+The task plan names the repo and base branch (carta-web is `master`, not `main`). NEVER assume `main` — confirm with `git -C <repo> symbolic-ref --short refs/remotes/origin/HEAD`.
 
 ```bash
 git -C <repo> worktree add .worktrees/<slug> -b <branch> origin/<default-branch>
 ```
 
-Work ONLY in that worktree. Keep it alive until the task reaches `merged`.
+Work ONLY there. Keep it alive until `merged`.
 
 ### 4. Implement
 
-Read `CLAUDE.md` first.
-
-- Task names skills (shown in `relay show <id>`)? Load each with the Skill tool before writing code and follow it exactly, including its own gates. Skill not installed here → `relay update <id> --state blocked --note "playbook <skill> unavailable in this session"`. Never improvise the methodology a playbook owns.
-
-Do exactly what the task says — no more, no less.
+Read `CLAUDE.md` first. The task names a PLAYBOOK skill (the `skills:` line of `relay show <id>`) — load it and follow it exactly, gates included. NEVER improvise the methodology a playbook owns; if it isn't installed here, stop: `relay update <id> --state blocked --note "playbook <skill> unavailable in this session"`. Do exactly what the task says, no more.
 
 ### 5. Verify
 
@@ -87,25 +71,23 @@ bun run format:check
 bun run build:ui   # only if UI files changed
 ```
 
-All must pass before handing off.
+All green before you hand off.
 
-### 6. Check for concurrent send-backs
+### 6. Re-check before pushing
 
 ```bash
 relay show <id>
 ```
 
-If state is no longer `doing`, abandon without pushing:
+No longer `doing`? It was sent back. Abandon without pushing, then loop:
 
 ```bash
 git -C <repo> worktree remove .worktrees/<slug> --force
 ```
 
-Then loop to step 1.
+### 7. Commit + push
 
-### 7. Commit and push
-
-One conventional commit per task. No em-dashes.
+One conventional commit, no em-dashes.
 
 ```bash
 git push -u origin <branch>
@@ -114,9 +96,9 @@ gh pr create --base main --head <branch> --title "..." --body "..."
 
 Do NOT merge.
 
-### 8. Hand off and wait — ONE command, run in the background
+### 8. Hand off and stay on the watch — ONE backgrounded command
 
-Hand off and stay on the watch in a single call. `--follow` transitions to `review`, then blocks watching the task until the coordinator responds — so the loop can't be dropped. Wait indefinitely (`--timeout 0`) and run it with `run_in_background: true`; the harness wakes you on the verdict. A finite timeout would only reintroduce the gap where you forget to re-arm.
+`--follow` moves the task to `review` then blocks on the watch, so the loop can't be dropped. Wait forever (`--timeout 0`), run it with `run_in_background: true`, and the harness wakes you on the verdict. A finite timeout only reopens the gap where you forget to re-arm.
 
 ```bash
 relay update <id> --state review --follow --json --timeout 0 \
@@ -125,17 +107,10 @@ relay update <id> --state review --follow --json --timeout 0 \
 
 React to what it returns:
 
-- `state: merged` → remove worktree, loop to step 1
-  ```bash
-  git -C <repo> worktree remove .worktrees/<slug> --force
-  ```
-- `state: todo` with a note → stay in the worktree, fix the issue, go back to step 5, force-push
+- `merged` → remove the worktree, back to step 1: `git -C <repo> worktree remove .worktrees/<slug> --force`
+- `todo` + note → stay in the worktree, fix, back to step 5, force-push, hand off again
 
-## Rules
+## Never
 
-- Only work on tasks from your registered project.
-- Never make design decisions. If ambiguous:
-  ```bash
-  relay update <id> --state blocked \
-    --note "Unclear: <question>. Needs coordinator decision."
-  ```
+- Work a task outside your registered project.
+- Make a design call. Ambiguous? `relay update <id> --state blocked --note "Unclear: <question>. Needs coordinator decision."`
