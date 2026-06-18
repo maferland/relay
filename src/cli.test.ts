@@ -653,5 +653,44 @@ describe('tasks CLI', () => {
       expect(exitCode).toBe(0)
       expect((JSON.parse(stdout) as Task[]).map((t) => t.id)).toContain(id)
     })
+
+    it('--state surfaces a task already waiting in that queue on the first poll', async () => {
+      const { id } = await addTask('already in review', ['--assignee', 'w1'])
+      await run(['claim', id], 'w1')
+      await run(['update', id, '--state', 'review', '--note', 'qa pls'], 'w1')
+      const { stdout, exitCode } = await run([
+        'watch',
+        '--state',
+        'review',
+        '--project',
+        'demo',
+        '--interval',
+        '0.2',
+        '--timeout',
+        '5',
+        '--json',
+      ])
+      expect(exitCode).toBe(0)
+      expect((JSON.parse(stdout) as Task[]).map((t) => t.id)).toContain(id)
+    })
+
+    it('with no --state, wakes on any change in the project', async () => {
+      const { id } = await addTask('any change', ['--assignee', 'w1'])
+      const watch = spawnCli([
+        'watch',
+        '--project',
+        'demo',
+        '--interval',
+        '0.2',
+        '--timeout',
+        '10',
+        '--json',
+      ])
+      await sleep(500)
+      await run(['update', id, '--note', 'poke'], 'w1')
+      const { stdout, exitCode } = await watch.result()
+      expect(exitCode).toBe(0)
+      expect((JSON.parse(stdout) as Task[]).map((t) => t.id)).toContain(id)
+    })
   })
 })

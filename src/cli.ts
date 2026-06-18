@@ -595,27 +595,28 @@ async function watchCommand(args: ParsedArgs): Promise<void> {
     }
   }
 
-  // Queue mode: block until a task enters --state (current project unless --all).
+  // Queue mode: --state drains tasks already waiting in that state on the first poll, then blocks for the next; no --state wakes on any change in the project.
   const state = requireState(val(args.flags.state))
-  if (!state)
-    die(
-      'usage: relay watch <id> | relay watch --state <state> [--project P|--all]',
-      2
-    )
   const scope = args.flags.all
     ? undefined
     : (val(args.flags.project) ?? detectProject())
   const baseline = val(args.flags.since) ?? new Date().toISOString()
+  let first = true
   for (;;) {
-    const entered = (await store.list({ state, project: scope })).filter(
-      (t) => t.updatedAt > baseline
+    const tasks = await store.list({ state, project: scope })
+    const entered = tasks.filter((t) =>
+      state && first ? true : t.updatedAt > baseline
     )
+    first = false
     if (entered.length) {
       printList(entered, json)
       return
     }
     if (Date.now() >= deadline)
-      die(`Timed out after ${timeout}s; nothing entered ${state}.`, 3)
+      die(
+        `Timed out after ${timeout}s; nothing entered ${state ?? scope ?? 'the queue'}.`,
+        3
+      )
     await sleep(interval * 1000)
   }
 }
